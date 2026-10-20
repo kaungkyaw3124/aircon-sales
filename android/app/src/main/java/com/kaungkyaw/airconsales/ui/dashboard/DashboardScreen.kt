@@ -25,10 +25,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.kaungkyaw.airconsales.ui.theme.ChangeDown
+import com.kaungkyaw.airconsales.ui.theme.ChangeUp
 
 @Composable
 fun DashboardScreen(vm: DashboardViewModel = hiltViewModel()) {
@@ -37,8 +38,6 @@ fun DashboardScreen(vm: DashboardViewModel = hiltViewModel()) {
     DashboardContent(state, refreshing, onRefresh = vm::load, onLogout = vm::logout)
 }
 
-private val Green = Color(0xFF2E7D32)
-private val Red = Color(0xFFC62828)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -101,8 +100,8 @@ private fun Loaded(ui: DashboardUi, offline: Boolean) {
                 ui.change,
                 style = MaterialTheme.typography.titleMedium,
                 color = when (ui.trend) {
-                    Trend.UP -> Green
-                    Trend.DOWN -> Red
+                    Trend.UP -> ChangeUp
+                    Trend.DOWN -> ChangeDown
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 },
             )

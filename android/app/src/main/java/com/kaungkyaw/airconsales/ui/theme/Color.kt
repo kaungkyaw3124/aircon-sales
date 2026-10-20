@@ -2,10 +2,13 @@ package com.kaungkyaw.airconsales.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+// Brand colours (D28). Change them here; the light and dark themes are built from these.
+val BrandBlue = Color(0xFF0057B8)
+val BrandSky = Color(0xFF00A3E0)
+// Dark theme uses lighter tints so text on dark surfaces stays readable.
+val BrandBlueDark = Color(0xFF9EC5FF)
+val BrandSkyDark = Color(0xFF7FD6F5)
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+// Sales change: ▲ up, ▼ down.
+val ChangeUp = Color(0xFF2E7D32)
+val ChangeDown = Color(0xFFC62828)
