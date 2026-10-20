@@ -13,7 +13,7 @@ An Android app that shows sales data for an aircon and accessories business. The
   PLAN.md           Roadmap (planner)
   DECISIONS.md      Owner's business decisions (planner)
   NEXT.md           Tasks to do now (planner)
-  STATUS.md         Current state (Claude Code)
+  status/           Current state per machine: vps.md, windows.md (Claude Code)
   reports/          One report per task (Claude Code)
   goals/            Older goal files (history)
 ```
@@ -46,8 +46,8 @@ The planner (Claude chat) writes the plan into the repo; Claude Code does the wo
 |---|---|---|
 | `docs/PLAN.md` | planner | roadmap of phases and tasks |
 | `docs/DECISIONS.md` | planner | owner's business decisions (win over older docs) |
-| `docs/NEXT.md` | planner | the tasks to do now, with **Done when** checks |
-| `docs/STATUS.md` | Claude Code | where things stand after each run |
+| `docs/NEXT.md` | planner | the tasks to do now, one section per machine, with **Done when** checks |
+| `docs/status/vps.md`, `docs/status/windows.md` | Claude Code | where each machine stands after each run |
 | `docs/reports/` | Claude Code | one report per task |
 
 The owner starts a run with **`/next`** (`.claude/commands/next.md`). Claude Code never edits

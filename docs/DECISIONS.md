@@ -40,3 +40,12 @@ Planner defaults, accepted unless the owner changes them:
 | D17 | Partial invoices on the dashboard | Counted in **both** places: under their payment method (money method used) and in `unpaid_count` / `unpaid_amount`, which the app labels **"Not fully paid"**. |
 | D18 | `void_count` | Counts sales **voided** today (by `voided_at`, Yangon day), even if sold earlier. |
 | D19 | API contract | `docs/openapi.yaml` v0.1.0 (commit 15077b6) is **approved**. Changes need the owner's OK. |
+
+## 2026-10-21 — End of Phase 0 review (Tasks 0.4, 0.5)
+
+| # | Topic | Decision |
+|---|---|---|
+| D20 | Seed data for "today" | OK that seeded sales cover all of today 09:00–19:00, even hours not reached yet. Dev data only. |
+| D21 | VPS ports | Our Postgres `127.0.0.1:5433`, API `127.0.0.1:8000`. Port 5432 and 8080 belong to other projects: never touch them. |
+| D22 | Python | 3.14 on the VPS and in the API image (spec said 3.12+). |
+| D23 | Role filter | Implement the `sales` role filter on `/dashboard/today` now in Phase 1 (cheap now, as the contract describes). |

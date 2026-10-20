@@ -1,4 +1,4 @@
-# Status
+# Status: VPS
 
 Overwritten by Claude Code at the end of every `/next` run.
 

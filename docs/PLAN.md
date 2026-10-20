@@ -1,17 +1,17 @@
 # Plan
 
 Roadmap for the Aircon Sales Dashboard. Written by the planner (Claude chat).
-Claude Code reads this but does not edit it. Progress lives in `docs/STATUS.md` and `docs/reports/`.
+Claude Code reads this but does not edit it. Progress lives in `docs/status/` and `docs/reports/`.
 
 ## How the loop works
 
 ```
 Planner (Claude chat)              GitHub repo                  Claude Code (Windows PC / VPS)
 writes PLAN, DECISIONS, NEXT  ──►  docs/NEXT.md  ──►  /next  ──►  pull, do tasks, test, fix, loop
-reads report, writes next NEXT ◄── docs/reports/ + STATUS.md  ◄──  report, commit, push
+reads report, writes next NEXT ◄── docs/reports/ + status/   ◄──  report, commit, push
 ```
 
-Owner's part: run `/next` on the machine `docs/STATUS.md` names, then attach the report to the planner.
+Owner's part: run `/next` on each machine that has tasks in `docs/NEXT.md` (both can run at the same time), then tell the planner "check report".
 Business decisions go into `docs/DECISIONS.md`.
 
 ## Machines
@@ -26,11 +26,11 @@ Business decisions go into `docs/DECISIONS.md`.
 - [x] 0.2 Database design (+ 0.2b owner decisions)
 - [x] 0.2c Schema follow-ups (D13–D15)
 - [x] 0.3 API contract (`openapi.yaml`) — approved (D19)
-- [ ] 0.4 Database + API skeleton on VPS
-- [ ] 0.5 Fake data generator
+- [x] 0.4 Database + API skeleton on VPS (Postgres 127.0.0.1:5433, API 127.0.0.1:8000)
+- [x] 0.5 Fake data generator (499 sales / 90 days)
 
 ### Phase 1 — Backend MVP (VPS)
-- [ ] 1.1 FastAPI app + `/health`
+- [ ] 1.1 Error handling (shared error shape)
 - [ ] 1.2 Login with JWT
 - [ ] 1.3 `GET /dashboard/today`
 - [ ] 1.4 "Today" in Asia/Yangon (boundary tests)
