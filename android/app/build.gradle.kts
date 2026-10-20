@@ -25,8 +25,9 @@ android {
 
     buildTypes {
         debug {
-            // 10.0.2.2 is the PC from the Android emulator
-            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8000/\"")
+            // The phone's own port 8000, forwarded to the PC with `adb reverse tcp:8000 tcp:8000`
+            // (works for the emulator and for a real phone on USB). The PC reaches the VPS API via an SSH tunnel.
+            buildConfigField("String", "API_BASE_URL", "\"http://127.0.0.1:8000/\"")
         }
         release {
             // shortcut: placeholder until the real server exists, set it in task 3.4

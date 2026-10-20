@@ -56,3 +56,9 @@ Planner defaults, accepted unless the owner changes them:
 |---|---|---|
 | D24 | Phase 1 | Approved. 61 tests, Schemathesis clean, live container answers login + dashboard per the contract. |
 | D25 | Login rate limiting | Needed before the API is exposed. Will add `429 rate_limited` to `/auth/login` in the contract (v0.1.1), **after** the Windows PC finishes Phase 2, so its contract tests don't break mid-run. |
+
+## 2026-10-21 — Owner testing the app (Task 2.6)
+
+| # | Topic | Decision |
+|---|---|---|
+| D26 | Debug API address | Debug build uses `http://127.0.0.1:8000/` + `adb reverse tcp:8000 tcp:8000` instead of `10.0.2.2` (the emulator route failed on the owner's PC). Works for the emulator and a USB phone. PC → VPS via `ssh -p 10066 -N -L 127.0.0.1:8000:127.0.0.1:8000 administrator@93.127.132.69`. Changed directly by the planner (commit message says so); Windows: verify `.\gradlew test` on the next run. |
