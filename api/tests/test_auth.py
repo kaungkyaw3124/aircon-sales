@@ -66,6 +66,7 @@ def test_missing_fields_give_422(client, body):
 def test_missing_token_gives_401(client, make_user):
     resp = client.get("/_test/me")
     assert resp.status_code == 401 and resp.json() == UNAUTHORIZED
+    assert resp.headers["www-authenticate"] == "Bearer"
 
 
 def test_garbage_token_gives_401(client):

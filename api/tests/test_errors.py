@@ -43,12 +43,19 @@ def test_non_json_body_gives_422_in_shared_shape(client):
                  422, "validation_error")
 
 
+def test_undecodable_body_gives_422_in_shared_shape(client):
+    assert_error(client.post("/_test/echo", content=b"\xff\xfe\x00", headers={"content-type": "application/json"}),
+                 422, "validation_error")
+
+
 def test_unknown_path_gives_404_in_shared_shape(client):
     assert_error(client.get("/no/such/path"), 404, "not_found")
 
 
 def test_wrong_method_gives_405_in_shared_shape(client):
-    assert_error(client.post("/health"), 405, "method_not_allowed")
+    resp = client.post("/health")
+    assert_error(resp, 405, "method_not_allowed")
+    assert resp.headers["allow"] == "GET"
 
 
 def test_unhandled_exception_gives_500_without_traceback(client):
