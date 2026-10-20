@@ -30,3 +30,13 @@ Planner defaults, accepted unless the owner changes them:
 | D14 | Warranty length | Per product: `products.warranty_months` (nullable; aircons only). The API fills `warranty_until` = sale date (Yangon) + warranty_months. |
 | D15 | Customer phone | **Not unique** (families and companies share numbers). Plain index on `phone` for search. |
 | D16 | Partial payments | The `partial` label is enough. No amount-owed tracking. |
+
+## 2026-10-21 — API contract review (Task 0.3)
+
+Planner defaults, accepted unless the owner changes them:
+
+| # | Topic | Decision |
+|---|---|---|
+| D17 | Partial invoices on the dashboard | Counted in **both** places: under their payment method (money method used) and in `unpaid_count` / `unpaid_amount`, which the app labels **"Not fully paid"**. |
+| D18 | `void_count` | Counts sales **voided** today (by `voided_at`, Yangon day), even if sold earlier. |
+| D19 | API contract | `docs/openapi.yaml` v0.1.0 (commit 15077b6) is **approved**. Changes need the owner's OK. |

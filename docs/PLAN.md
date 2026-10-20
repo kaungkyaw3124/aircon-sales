@@ -24,8 +24,8 @@ Business decisions go into `docs/DECISIONS.md`.
 ### Phase 0 — Foundations
 - [x] 0.1 Project structure + GitHub
 - [x] 0.2 Database design (+ 0.2b owner decisions)
-- [ ] 0.2c Schema follow-ups (D13–D15)
-- [ ] 0.3 API contract (`openapi.yaml`) — **owner review**
+- [x] 0.2c Schema follow-ups (D13–D15)
+- [x] 0.3 API contract (`openapi.yaml`) — approved (D19)
 - [ ] 0.4 Database + API skeleton on VPS
 - [ ] 0.5 Fake data generator
 
