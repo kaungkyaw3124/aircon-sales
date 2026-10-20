@@ -10,7 +10,12 @@ An Android app that shows sales data for an aircon and accessories business. The
 /docs      Contract, schema, goals
   openapi.yaml      API contract: the single source of truth
   schema.md         Database design notes
-  goals/            One goal file per step (phase-0.md, phase-1.md, ...)
+  PLAN.md           Roadmap (planner)
+  DECISIONS.md      Owner's business decisions (planner)
+  NEXT.md           Tasks to do now (planner)
+  STATUS.md         Current state (Claude Code)
+  reports/          One report per task (Claude Code)
+  goals/            Older goal files (history)
 ```
 
 ## Where each part runs (important)
@@ -33,9 +38,24 @@ One git repository, cloned on two machines and synced through a private GitHub r
 - Every destructive script (reset, seed, drop) must refuse to run when `APP_ENV=production`.
 - Tests use a separate test database (`aircon_test`), never the main one.
 
+## How we work: planner + task loop
+
+The planner (Claude chat) writes the plan into the repo; Claude Code does the work.
+
+| File | Written by | Purpose |
+|---|---|---|
+| `docs/PLAN.md` | planner | roadmap of phases and tasks |
+| `docs/DECISIONS.md` | planner | owner's business decisions (win over older docs) |
+| `docs/NEXT.md` | planner | the tasks to do now, with **Done when** checks |
+| `docs/STATUS.md` | Claude Code | where things stand after each run |
+| `docs/reports/` | Claude Code | one report per task |
+
+The owner starts a run with **`/next`** (`.claude/commands/next.md`). Claude Code never edits
+`PLAN.md`, `DECISIONS.md` or `NEXT.md`. `docs/goals/` is the older goal format, kept for history.
+
 ## How we work: goal loops
 
-Every task comes from a goal file in `/docs/goals/`. Each goal has a **Done when** section.
+Every task comes from `docs/NEXT.md` (older ones from `/docs/goals/`). Each task has a **Done when** section.
 
 1. Read the goal and the "Done when" checks.
 2. Write code.
