@@ -10,6 +10,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import okhttp3.OkHttpClient
+import java.util.concurrent.TimeUnit
 import javax.inject.Named
 import javax.inject.Singleton
 
@@ -27,5 +29,6 @@ object NetworkModule {
                 token = { runBlocking { session.token.first() } },
                 onUnauthorized = { runBlocking { session.clear() } },
             ),
+            OkHttpClient.Builder().callTimeout(15, TimeUnit.SECONDS),
         )
 }

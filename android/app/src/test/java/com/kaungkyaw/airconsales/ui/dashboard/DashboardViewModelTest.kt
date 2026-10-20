@@ -70,6 +70,7 @@ class DashboardViewModelTest {
         assertEquals("2 invoices", ui.unpaidCount)
         assertEquals("1,990,000 Ks", ui.unpaidAmount)
         assertEquals("1 sale", ui.voided)
+        assertEquals("Last updated 15:42", ui.lastUpdated)
     }
 
     @Test

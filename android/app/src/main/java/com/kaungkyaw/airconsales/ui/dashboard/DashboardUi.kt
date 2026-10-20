@@ -3,6 +3,7 @@ package com.kaungkyaw.airconsales.ui.dashboard
 import com.kaungkyaw.airconsales.data.models.DashboardToday
 import com.kaungkyaw.airconsales.ui.formatKs
 import java.time.LocalDate
+import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.abs
@@ -23,6 +24,7 @@ data class DashboardUi(
     val unpaidCount: String,
     val unpaidAmount: String,
     val voided: String?,
+    val lastUpdated: String,
 )
 
 private val CATEGORY_LABELS = mapOf("aircon" to "Aircon", "accessory" to "Accessories", "service" to "Service")
@@ -30,6 +32,7 @@ private val METHOD_LABELS = mapOf(
     "cash" to "Cash", "bank" to "Bank", "kbzpay" to "KBZPay", "wavepay" to "WavePay", "other" to "Other",
 )
 private val DATE_FORMAT = DateTimeFormatter.ofPattern("EEE, d MMM yyyy", Locale.US)
+private val TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm", Locale.US)
 
 private fun count(n: Int, one: String, many: String) = "$n ${if (n == 1) one else many}"
 
@@ -60,6 +63,8 @@ fun DashboardToday.toUi(): DashboardUi {
         unpaidCount = count(unpaidCount, "invoice", "invoices"),
         unpaidAmount = formatKs(unpaidAmount),
         voided = if (voidCount > 0) count(voidCount, "sale", "sales") else null,
+        // generated_at carries the Yangon offset, so this is Yangon time whatever the phone's timezone.
+        lastUpdated = "Last updated " + OffsetDateTime.parse(generatedAt).format(TIME_FORMAT),
     )
 }
 

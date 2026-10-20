@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -57,19 +59,40 @@ fun DashboardContent(
         PullToRefreshBox(refreshing, onRefresh, Modifier.padding(padding).fillMaxSize()) {
             when (state) {
                 DashboardState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
-                is DashboardState.Error -> Text(state.message, Modifier.padding(16.dp))
-                is DashboardState.Loaded -> Loaded(state.ui)
+                is DashboardState.Error -> Column(
+                    Modifier.align(Alignment.Center).padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(state.message, style = MaterialTheme.typography.bodyLarge)
+                    Button(onClick = onRefresh) { Text("Retry") }
+                }
+                is DashboardState.Loaded -> Loaded(state.ui, state.offline)
             }
         }
     }
 }
 
 @Composable
-private fun Loaded(ui: DashboardUi) {
+private fun Loaded(ui: DashboardUi, offline: Boolean) {
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        if (offline) {
+            Card(
+                Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                ),
+            ) {
+                Column(Modifier.padding(12.dp)) {
+                    Text("Offline — showing saved data", style = MaterialTheme.typography.titleSmall)
+                    Text(ui.lastUpdated, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
         Column {
             Text(ui.date, style = MaterialTheme.typography.labelLarge)
             Text(ui.total, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)

@@ -36,4 +36,10 @@ class DashboardScreenshotTest {
         DashboardState.Loaded(day("normal_day").copy(yesterdayTotalAmount = 4182857, changePercent = -12.5).toUi()),
         "dashboard_negative_change",
     )
+
+    @Test fun loading() = capture(DashboardState.Loading, "dashboard_loading")
+
+    @Test fun error() = capture(DashboardState.Error("Server error (500)."), "dashboard_error")
+
+    @Test fun offline() = capture(DashboardState.Loaded(day("normal_day").toUi(), offline = true), "dashboard_offline")
 }

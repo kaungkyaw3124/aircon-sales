@@ -13,7 +13,8 @@ import javax.inject.Inject
 sealed interface DashboardState {
     data object Loading : DashboardState
     data class Error(val message: String) : DashboardState
-    data class Loaded(val ui: DashboardUi) : DashboardState
+    /** [offline]: the server could not be reached and [ui] is the last saved dashboard. */
+    data class Loaded(val ui: DashboardUi, val offline: Boolean = false) : DashboardState
 }
 
 @HiltViewModel
@@ -34,7 +35,9 @@ class DashboardViewModel @Inject constructor(private val repo: SalesRepository) 
             _state.value = when (val result = repo.dashboardToday()) {
                 is ApiResult.Success -> DashboardState.Loaded(result.data.toUi())
                 is ApiResult.ApiError -> DashboardState.Error(result.message)
-                ApiResult.NetworkError -> DashboardState.Error("Can't reach the server.")
+                ApiResult.NetworkError -> repo.cachedDashboard()
+                    ?.let { DashboardState.Loaded(it.toUi(), offline = true) }
+                    ?: DashboardState.Error("Can't reach the server. Check the connection and try again.")
             }
             _refreshing.value = false
         }

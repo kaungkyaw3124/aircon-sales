@@ -18,7 +18,11 @@ class SalesRepository @Inject constructor(
         apiCall { api.login(LoginRequest(username, password)) }
             .also { if (it is ApiResult.Success) session.save(it.data) }
 
-    suspend fun dashboardToday(): ApiResult<DashboardToday> = apiCall { api.dashboardToday() }
+    suspend fun dashboardToday(): ApiResult<DashboardToday> =
+        apiCall { api.dashboardToday() }
+            .also { if (it is ApiResult.Success) session.saveDashboard(it.data) }
+
+    suspend fun cachedDashboard(): DashboardToday? = session.cachedDashboard()
 
     suspend fun logout() = session.clear()
 }
