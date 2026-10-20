@@ -63,6 +63,17 @@ def test_missing_fields_give_422(client, body):
     assert resp.json()["error"]["code"] == "validation_error"
 
 
+def test_password_over_72_bytes_gives_401_not_500(client, make_user):
+    make_user(username="owner")
+    resp = login(client, "owner", "é" * 40)  # 80 bytes in UTF-8
+    assert resp.status_code == 401 and resp.json() == INVALID
+
+
+def test_nul_in_username_gives_401_not_500(client):
+    resp = login(client, "own\x00er", "secret-pw")
+    assert resp.status_code == 401 and resp.json() == INVALID
+
+
 def test_missing_token_gives_401(client, make_user):
     resp = client.get("/_test/me")
     assert resp.status_code == 401 and resp.json() == UNAUTHORIZED

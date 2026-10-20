@@ -6,7 +6,3 @@ psycopg[binary]==3.3.6
 pydantic-settings==2.16.1
 bcrypt==5.0.0
 PyJWT==2.15.1
-pytest==9.1.1
-httpx==0.28.1
-PyYAML==6.0.3
-schemathesis==4.32.2

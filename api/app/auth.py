@@ -35,8 +35,11 @@ def make_token(user: User, issued_at: datetime, minutes: int = settings.jwt_expi
 
 @router.post("/auth/login")
 def login(body: LoginRequest, db: Annotated[Session, Depends(get_db)], at: Annotated[datetime, Depends(now)]):
-    user = db.scalars(select(User).where(User.username == body.username)).first()
-    ok = bcrypt.checkpw(body.password.encode(), user.password_hash.encode() if user else DUMMY_HASH)
+    # Postgres text can't hold NUL, so no user has one; querying it would raise (500)
+    user = None if "\x00" in body.username else db.scalars(select(User).where(User.username == body.username)).first()
+    password = body.password.encode()
+    # bcrypt rejects > 72 bytes, so no stored hash can match such a password: plain wrong credentials, not a 500
+    ok = len(password) <= 72 and bcrypt.checkpw(password, user.password_hash.encode() if user else DUMMY_HASH)
     if not (user and ok and user.active):
         raise INVALID_CREDENTIALS
     return {
