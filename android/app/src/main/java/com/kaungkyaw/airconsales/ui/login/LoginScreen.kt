@@ -24,32 +24,55 @@ import com.kaungkyaw.airconsales.R
 
 @Composable
 fun LoginScreen(vm: LoginViewModel = hiltViewModel()) {
+    LoginContent(
+        username = vm.username,
+        password = vm.password,
+        error = vm.error,
+        loading = vm.loading,
+        canSubmit = vm.canSubmit,
+        onUsernameChange = { vm.username = it },
+        onPasswordChange = { vm.password = it },
+        onLogin = vm::login,
+    )
+}
+
+@Composable
+fun LoginContent(
+    username: String,
+    password: String,
+    error: String?,
+    loading: Boolean,
+    canSubmit: Boolean,
+    onUsernameChange: (String) -> Unit = {},
+    onPasswordChange: (String) -> Unit = {},
+    onLogin: () -> Unit = {},
+) {
     Column(
         Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
     ) {
         Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium)
         OutlinedTextField(
-            value = vm.username,
-            onValueChange = { vm.username = it },
+            value = username,
+            onValueChange = onUsernameChange,
             label = { Text("Username") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
             modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(
-            value = vm.password,
-            onValueChange = { vm.password = it },
+            value = password,
+            onValueChange = onPasswordChange,
             label = { Text("Password") },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
             modifier = Modifier.fillMaxWidth(),
         )
-        vm.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        Button(onClick = vm::login, enabled = vm.canSubmit, modifier = Modifier.fillMaxWidth()) {
+        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        Button(onClick = onLogin, enabled = canSubmit, modifier = Modifier.fillMaxWidth()) {
             Text("Log in")
         }
-        if (vm.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
+        if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
     }
 }
