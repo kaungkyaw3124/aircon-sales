@@ -53,6 +53,21 @@ Every task comes from a goal file in `/docs/goals/`. Each goal has a **Done when
 - The ponytail plugin is installed: write the minimum code a goal needs. But every check in a goal's
   **Done when** is required, even if ponytail would skip it. Goal files win over ponytail's defaults.
 
+### Reports
+
+After every goal, write `docs/reports/report-<goal>.md` (e.g. `report-0.2.md`) with exactly these sections:
+
+1. **Goal:** number and title
+2. **Status:** DONE, BLOCKED, or NEEDS REVIEW
+3. **Checks:** table of each "Done when" check, PASS/FAIL, and the command used
+4. **What changed:** files added/changed/deleted, one line each on why
+5. **Decisions I made:** anything not specified in the goal that I decided myself
+6. **Questions for the owner:** anything needing a business decision
+7. **Not checked / risks:** what I skipped or couldn't verify
+8. **Commit:** hash and message
+
+Commit the report together with the goal's work.
+
 ## Commands
 
 ### Android (Windows PC, from D:\claude\p1)
