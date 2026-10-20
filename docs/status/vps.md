@@ -2,20 +2,23 @@
 
 Overwritten by Claude Code at the end of every `/next` run.
 
-- **Last task:** 1.5 — Contract tests
-- **Status:** NEEDS REVIEW (all checks pass; stopped for review at the end of Phase 1, as the task requires)
-- **Commit:** a3c4d68
-- **Also done this run (all DONE):** 1.1 error handling `b01f4c2`, 1.2 login with JWT `fcc36d8`,
-  1.3 `/dashboard/today` `cd921d5`, 1.4 Yangon day boundaries `b3099f4`
-- **Open questions (from report-1.5):** none.
+- **Last task:** 3.2 — Daily database backup + restore test
+- **Status:** NEEDS REVIEW (all checks pass; the task says stop for review)
+- **Commit:** 13ae0ec
+- **Also done this run:** 3.1 production-ready container, DONE, `c1e530b`
+- **Open questions (from report-3.2):**
+  1. Off-server copy of backups? Dumps are only on the same VPS now. Google Drive / another server / owner's PC?
+  2. Are 14 daily backups enough, or also keep monthly ones for a year?
+  3. (report-3.2 "missing" list, item 8) 24 h tokens with no logout/revoke. OK?
 - **Facts for the planner:**
-  - 61 tests pass (`api/.venv/bin/pytest`, ~40 s; Schemathesis is most of it).
-  - Live container `aircon-api` was rebuilt with Phase 1 and runs on `127.0.0.1:8000` (DB `127.0.0.1:5433`, D21).
-    Login `owner` / `owner123` → `/dashboard/today` returns 200 and matches the contract.
-  - Schemathesis found two real bugs, both fixed: error responses dropped headers (`Allow` on 405, `WWW-Authenticate` on 401),
-    and a body that isn't valid UTF-8 gave an undocumented 400 (now 422 `validation_error`).
-  - `JWT_SECRET` must be ≥ 32 chars or the API won't start; the VPS `.env` has 64. `.env.example` updated.
-  - The Docker CLI works here only through `sg docker -c "…"` (the session doesn't pick up the `docker` group yet; a re-login fixes it).
-  - New pinned deps: PyJWT 2.15.1, PyYAML 6.0.3, schemathesis 4.32.2. Test-only packages are still in the one `requirements.txt` (so they're in the image too).
-  - The seeded "today" in `aircon` is from the 10-20 seed run (D20); reseed for fresh numbers.
-  - Before exposing the API (Phase 3): add login rate limiting (not built yet).
+  - **Before going public, see report-3.2 → "What is still missing".** Notably: `/docs`, `/redoc` and `/openapi.json` answer **without a token**
+    today (breaks the CLAUDE.md security rule; fix for `APP_ENV=production`), there's no script to create real users, and there's no Docker log rotation.
+  - Schemathesis found **two old login 500s** during 3.1 (password > 72 bytes, NUL in username). Both now give 401 `invalid_credentials`, with tests. No contract change.
+  - Test deps moved to `api/requirements-dev.txt`. `CLAUDE.md` → Commands → API still says `pip install -r requirements.txt`; should be `requirements-dev.txt` for the venv (I didn't edit CLAUDE.md).
+  - 64 tests pass (~40 s).
+  - Container: migrates on start (exit 1 if migration fails), healthcheck on `/health`, 2 workers, `--proxy-headers` with `--forwarded-allow-ips '*'` (tighten in 3.4).
+    Logs: `METHOD /path STATUS ms`, path only, `/health` not logged, timestamps UTC.
+  - With 2 workers, 3.3's rate limiter must keep its counters in Postgres (in-memory is per worker).
+  - Backups: `~/aircon-backups/`, cron `0 20 * * *` UTC = 02:30 Yangon (server clock is UTC, cron has no per-job TZ). Cron gets the `docker` group fine (proved with a test entry).
+    Log at `~/aircon-backups/backup.log`. 3 dev dumps are there now.
+  - The Docker CLI in an interactive session still needs `sg docker -c "…"`.
