@@ -33,7 +33,7 @@ One store only: there are no branches.
 |---|---|---|---|
 | `id` | `bigint` identity | no | PK |
 | `name` | `text` | no | |
-| `phone` | `text` | yes | UNIQUE (Postgres allows many NULLs) |
+| `phone` | `text` | yes | not unique: families and companies share numbers (D15); plain index for search |
 | `address` | `text` | yes | |
 | `created_at` | `timestamptz` | no | default `now()` |
 
@@ -50,9 +50,10 @@ One store only: there are no branches.
 | `capacity_hp` | `numeric(3,1)` | yes | e.g. `1.5`; not money, so `numeric` is fine |
 | `is_inverter` | `boolean` | yes | |
 | `price` | `bigint` | no | the one list price; CHECK `price >= 0` |
+| `warranty_months` | `integer` | yes | aircons only; CHECK `warranty_months > 0`; null = warranty unknown (D14) |
 | `active` | `boolean` | no | default `true` |
 
-Constraint: `CHECK (category = 'aircon' OR (capacity_hp IS NULL AND is_inverter IS NULL))`.
+Constraint: `CHECK (category = 'aircon' OR (capacity_hp IS NULL AND is_inverter IS NULL AND warranty_months IS NULL))`.
 
 ### `sales`
 
@@ -104,11 +105,32 @@ Serial numbers of aircon units sold, for warranty.
 
 Enforced by the API, not the database:
 - serials are only allowed on `sale_items` whose product has `category = 'aircon'`;
-- the number of serials for a line equals its `quantity`.
+- the number of serials for a line equals its `quantity`;
+- `warranty_until` = the sale's Yangon date (`date(sold_at AT TIME ZONE 'Asia/Yangon')`) + the product's
+  `warranty_months` months, when the serial is entered; null when `warranty_months` is null (D14).
+
+### `voided_sale_serials`
+
+Serials of voided sales, kept for history (D13). Moving them out of `sale_item_serials` frees the serial
+so it can be entered again on the corrected sale, while `sale_item_serials.serial_no` stays UNIQUE.
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| `id` | `bigint` identity | no | PK |
+| `original_sale_item_id` | `bigint` | no | FK → `sale_items.id` ON DELETE RESTRICT (the voided sale's line) |
+| `serial_no` | `text` | no | not unique: a serial may be voided more than once |
+| `warranty_until` | `date` | yes | copied from the original row |
+| `voided_at` | `timestamptz` | no | same value as the sale's `voided_at` |
+
+**Void procedure** (API, one transaction):
+1. Copy the sale's rows from `sale_item_serials` into `voided_sale_serials`
+   (`sale_item_id` → `original_sale_item_id`, `serial_no`, `warranty_until`, `voided_at`).
+2. Delete those rows from `sale_item_serials`.
+3. Set the sale to `status = 'void'` with `voided_at` and `void_reason`.
 
 ## Indexes
 
-Besides the primary keys and the UNIQUE constraints above (`users.username`, `customers.phone`,
+Besides the primary keys and the UNIQUE constraints above (`users.username`,
 `products.sku`, `sales.invoice_no`, `sale_item_serials.serial_no`):
 
 | Index | Used by |
@@ -119,6 +141,9 @@ Besides the primary keys and the UNIQUE constraints above (`users.username`, `cu
 | `sale_items (sale_id)` | joining items to their sale; FK index |
 | `sale_items (product_id)` | top products; FK index |
 | `sale_item_serials (sale_item_id)` | serials of a line; FK index |
+| `voided_sale_serials (original_sale_item_id)` | voided serials of a line; FK index |
+| `voided_sale_serials (serial_no)` | warranty lookup by serial, including voided history |
+| `customers (phone)` | customer search by phone (plain, not unique) |
 
 Void sales are few, so the indexes are not partial; the `status = 'completed'` filter is applied on the rows found.
 
