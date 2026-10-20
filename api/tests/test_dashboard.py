@@ -34,9 +34,10 @@ class Shop:
         db.flush()
 
     def sale(self, at, lines, method="cash", pay="paid", user=None, voided_at=None):
-        """lines: [(category, quantity, unit_price)]; at / voided_at: Yangon time strings."""
+        """lines: [(category, quantity, unit_price)]; at: Yangon time string or aware datetime; voided_at: string."""
         no = self.db.execute(text("SELECT nextval('invoice_no_seq')")).scalar()
-        sale = Sale(invoice_no=f"INV-{no:06d}", user_id=(user or self.owner).id, sold_at=ygn(at),
+        sale = Sale(invoice_no=f"INV-{no:06d}", user_id=(user or self.owner).id,
+                    sold_at=at if isinstance(at, datetime) else ygn(at),
                     total_amount=sum(q * p for _, q, p in lines), payment_status=pay,
                     payment_method=None if pay == "unpaid" else method,
                     status="void" if voided_at else "completed",
