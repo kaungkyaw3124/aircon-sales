@@ -1,0 +1,11 @@
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIn0.c2lnbmF0dXJl",
+  "token_type": "bearer",
+  "expires_in": 86400,
+  "user": {
+    "id": 1,
+    "username": "owner",
+    "full_name": "U Kyaw Kyaw",
+    "role": "owner"
+  }
+}

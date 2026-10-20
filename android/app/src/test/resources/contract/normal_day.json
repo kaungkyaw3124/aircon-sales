@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-20",
+  "currency": "MMK",
+  "total_amount": 3660000,
+  "invoice_count": 5,
+  "void_count": 1,
+  "yesterday_total_amount": 3050000,
+  "change_percent": 20.0,
+  "by_category": [
+    {"category": "aircon", "amount": 3300000, "quantity": 2},
+    {"category": "accessory", "amount": 150000, "quantity": 5},
+    {"category": "service", "amount": 210000, "quantity": 3}
+  ],
+  "by_payment_method": [
+    {"payment_method": "cash", "amount": 1600000, "invoice_count": 2},
+    {"payment_method": "kbzpay", "amount": 1870000, "invoice_count": 1},
+    {"payment_method": "wavepay", "amount": 70000, "invoice_count": 1}
+  ],
+  "unpaid_count": 2,
+  "unpaid_amount": 1990000,
+  "generated_at": "2026-10-20T15:42:10+06:30"
+}
