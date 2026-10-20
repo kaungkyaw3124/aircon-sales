@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,6 +11,13 @@ class Settings(BaseSettings):
     jwt_secret: str
     jwt_expire_minutes: int = 1440
     business_tz: str = "Asia/Yangon"
+
+    @field_validator("jwt_secret")
+    @classmethod
+    def jwt_secret_long_enough(cls, v: str) -> str:
+        if len(v) < 32:
+            raise ValueError("JWT_SECRET must be at least 32 characters")
+        return v
 
 
 settings = Settings()

@@ -36,3 +36,37 @@ def conn(engine):
         tx = c.begin()
         yield c
         tx.rollback()
+
+
+@pytest.fixture
+def db(conn):
+    """ORM session inside the test's rolled-back transaction."""
+    from sqlalchemy.orm import Session
+    with Session(bind=conn, join_transaction_mode="create_savepoint") as s:
+        yield s
+
+
+@pytest.fixture
+def client(db):
+    """Test client whose requests use the test transaction."""
+    from fastapi.testclient import TestClient
+    from app.db import get_db
+    from app.main import app
+    app.dependency_overrides[get_db] = lambda: db
+    yield TestClient(app, raise_server_exceptions=False)
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def make_user(db):
+    """Creates a user with a bcrypt password; returns the User."""
+    import bcrypt
+    from app.models import User
+
+    def make(username="owner", password="secret-pw", role="owner", active=True, full_name="U Kyaw Kyaw"):
+        user = User(username=username, password_hash=bcrypt.hashpw(password.encode(), bcrypt.gensalt(4)).decode(),
+                    full_name=full_name, role=role, active=active)
+        db.add(user)
+        db.flush()
+        return user
+    return make
