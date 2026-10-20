@@ -1,0 +1,18 @@
+# Android
+build/
+.gradle/
+local.properties
+*.apk
+.idea/
+*.iml
+.kotlin/
+captures/
+.cxx/
+
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
+
+# Secrets
+.env
