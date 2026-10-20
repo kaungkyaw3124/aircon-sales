@@ -27,7 +27,10 @@ Create the monorepo around the existing `/android` project and push it to GitHub
 
 Write `/docs/schema.md`. Design only, no code yet.
 
-### Tables (minimum)
+> **Updated after owner review:** one store (no branches), roles `owner` / `sales`, customers, aircon serials,
+> payment method and void sales were added. `docs/schema.md` is the current design; see `docs/reports/report-0.2b.md`.
+
+### Tables (minimum, original request)
 - `branches` — id, name, address, active
 - `users` — id, username, password_hash, full_name, role (`owner` / `manager` / `sales`), branch_id (nullable for owner), active
 - `products` — id, sku, name, category (`aircon` / `accessory` / `service`), brand, model, capacity_hp (nullable, aircon only), is_inverter (nullable), price, active
@@ -53,7 +56,7 @@ Write `/docs/openapi.yaml` (OpenAPI 3.1) for the Phase 1 endpoints only.
 
 ### Endpoints
 - `GET /health` — no auth. Returns `{ "status": "ok" }`.
-- `POST /auth/login` — body `{ username, password }`. Returns `{ access_token, token_type, expires_in, user: { id, full_name, role, branch_id } }`. 401 on wrong credentials.
+- `POST /auth/login` — body `{ username, password }`. Returns `{ access_token, token_type, expires_in, user: { id, full_name, role } }`. 401 on wrong credentials.
 - `GET /dashboard/today` — bearer auth. Returns:
   - `date` (YYYY-MM-DD, Asia/Yangon)
   - `total_amount`, `invoice_count`
@@ -79,7 +82,8 @@ Write `/docs/openapi.yaml` (OpenAPI 3.1) for the Phase 1 endpoints only.
 
 ### Do
 - FastAPI structure: `app/main.py`, `app/db.py`, `app/models.py`, `app/config.py`.
-- SQLAlchemy models matching `schema.md`.
+- SQLAlchemy models matching `schema.md`: tables `users`, `customers`, `products`, `sales`, `sale_items`,
+  `sale_item_serials`, plus sequence `invoice_no_seq`, with every CHECK, UNIQUE, FK and index listed there.
 - Alembic with one initial migration.
 - `docker-compose.yml` in `/api` with `db` (PostgreSQL 16) and `api` services. Postgres port bound to `127.0.0.1` only, never public.
 - Two databases: `aircon` (main) and `aircon_test` (tests only).
@@ -102,10 +106,14 @@ Write `/docs/openapi.yaml` (OpenAPI 3.1) for the Phase 1 endpoints only.
 Write `api/scripts/seed.py` to fill the database with realistic test data.
 
 ### Data
-- 3 branches, 1 owner, 3 managers (one per branch), 6 salespeople.
+- 1 owner, 4 salespeople.
 - About 40 products: aircons (several brands, 1 / 1.5 / 2 / 2.5 HP, inverter and non-inverter), accessories (brackets, copper pipe, remote, stabilizer, drain pipe), services (installation, cleaning, repair).
 - 90 days of sales ending today (Asia/Yangon).
 - Hotter months (March–May) have more aircon sales. Accessories often appear with aircon sales. Most invoices paid; some partial / unpaid.
+- Payment methods mixed across `cash`, `bank`, `kbzpay`, `wavepay`, `other` (none on unpaid invoices).
+- Customers: some named customers (some with phone numbers), and some walk-in sales with no customer.
+- Every aircon line gets one serial number per unit, with a `warranty_until` date.
+- A few void sales (with `voided_at` and `void_reason`).
 - Fixed random seed so data is the same every run.
 - Dev login: `owner` / `owner123` (documented in README as dev only).
 

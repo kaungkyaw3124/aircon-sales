@@ -101,9 +101,11 @@ Run with Docker Compose (API + Postgres).
 ## Business rules
 
 - Product categories: `aircon`, `accessory`, `service` (installation / repair).
-- Money is stored as integers in the smallest currency unit. Never use floats for money.
+- One store only (no branches).
+- Currency is Myanmar kyat (MMK) only. Money is stored as integers in kyat (the smallest unit is 1 kyat). Never use floats for money.
 - Business timezone is `Asia/Yangon`. "Today", "yesterday", "this week" are always calculated in this timezone, never server UTC.
-- Users have roles: `owner` (all data), `manager` (own branch only), `sales` (own sales only). Roles arrive in Phase 5; design for them from the start.
+- Users have roles: `owner` (all data), `sales` (own sales only). Roles arrive in Phase 5; design for them from the start.
+- Sales are never deleted, only voided. Void sales are excluded from every total.
 
 ## Security
 
