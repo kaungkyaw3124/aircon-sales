@@ -1,0 +1,375 @@
+openapi: 3.1.0
+info:
+  title: Aircon Sales Dashboard API
+  version: 0.1.0
+  description: |
+    API for the aircon sales dashboard app. Phase 1 endpoints only.
+
+    - Currency is Myanmar kyat (MMK) only. Every money field is an integer number of kyat.
+    - Business days ("today", "yesterday") are calculated in `Asia/Yangon`, never server UTC.
+    - Void sales are excluded from every total.
+    - Every 4xx/5xx response uses the shared `Error` shape.
+  license:
+    name: Proprietary
+    identifier: LicenseRef-Proprietary
+servers:
+  - url: http://localhost:8000
+    description: Local development
+
+security:
+  - bearerAuth: []
+
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Health check
+      security: []
+      responses:
+        '200':
+          description: The API is running.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+              examples:
+                ok:
+                  value:
+                    status: ok
+
+  /auth/login:
+    post:
+      operationId: login
+      summary: Log in and get an access token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              owner:
+                value:
+                  username: owner
+                  password: correct-horse-battery
+      responses:
+        '200':
+          description: Logged in.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              examples:
+                owner:
+                  value:
+                    access_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIn0.c2lnbmF0dXJl
+                    token_type: bearer
+                    expires_in: 86400
+                    user:
+                      id: 1
+                      username: owner
+                      full_name: U Kyaw Kyaw
+                      role: owner
+        '401':
+          description: Wrong username or password, or the user is inactive.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_credentials:
+                  value:
+                    error:
+                      code: invalid_credentials
+                      message: Wrong username or password.
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /dashboard/today:
+    get:
+      operationId: getDashboardToday
+      summary: Today's sales summary
+      description: |
+        Sales summary for the current business day in `Asia/Yangon`.
+
+        - Totals count `completed` sales only; void sales are excluded.
+        - `owner` users see all sales. `sales` users get the same shape, filtered to their own sales
+          (enforced in Phase 5).
+      responses:
+        '200':
+          description: Today's summary.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardToday'
+              examples:
+                normal_day:
+                  summary: A normal day
+                  description: |
+                    5 completed invoices: INV-000101 aircon 1,500,000 cash paid;
+                    INV-000102 aircon 1,800,000 + installation 70,000 kbzpay partial;
+                    INV-000103 3 accessories 100,000 cash paid;
+                    INV-000104 2 accessories 50,000 + repair 70,000 unpaid;
+                    INV-000105 repair 70,000 wavepay paid. One more invoice was voided.
+                  value:
+                    date: '2026-10-20'
+                    currency: MMK
+                    total_amount: 3660000
+                    invoice_count: 5
+                    void_count: 1
+                    yesterday_total_amount: 3050000
+                    change_percent: 20.0
+                    by_category:
+                      - category: aircon
+                        amount: 3300000
+                        quantity: 2
+                      - category: accessory
+                        amount: 150000
+                        quantity: 5
+                      - category: service
+                        amount: 210000
+                        quantity: 3
+                    by_payment_method:
+                      - payment_method: cash
+                        amount: 1600000
+                        invoice_count: 2
+                      - payment_method: kbzpay
+                        amount: 1870000
+                        invoice_count: 1
+                      - payment_method: wavepay
+                        amount: 70000
+                        invoice_count: 1
+                    unpaid_count: 2
+                    unpaid_amount: 1990000
+                    generated_at: '2026-10-20T15:42:10+06:30'
+                empty_day:
+                  summary: No sales today or yesterday
+                  value:
+                    date: '2026-10-21'
+                    currency: MMK
+                    total_amount: 0
+                    invoice_count: 0
+                    void_count: 0
+                    yesterday_total_amount: 0
+                    change_percent: null
+                    by_category:
+                      - category: aircon
+                        amount: 0
+                        quantity: 0
+                      - category: accessory
+                        amount: 0
+                        quantity: 0
+                      - category: service
+                        amount: 0
+                        quantity: 0
+                    by_payment_method: []
+                    unpaid_count: 0
+                    unpaid_amount: 0
+                    generated_at: '2026-10-21T08:05:00+06:30'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    Unauthorized:
+      description: Missing, invalid or expired token.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            unauthorized:
+              value:
+                error:
+                  code: unauthorized
+                  message: Missing or invalid token.
+    ValidationError:
+      description: The request body is missing fields or has the wrong types.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            missing_field:
+              value:
+                error:
+                  code: validation_error
+                  message: 'password: field required'
+
+  schemas:
+    Money:
+      type: integer
+      format: int64
+      minimum: 0
+      description: Amount in Myanmar kyat (MMK). Integer, never a float.
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code, e.g. `invalid_credentials`.
+            message:
+              type: string
+              description: Human-readable message.
+
+    Health:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          const: ok
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          minLength: 1
+          format: password
+
+    User:
+      type: object
+      required: [id, username, full_name, role]
+      properties:
+        id:
+          type: integer
+          format: int64
+        username:
+          type: string
+        full_name:
+          type: string
+        role:
+          type: string
+          enum: [owner, sales]
+
+    LoginResponse:
+      type: object
+      required: [access_token, token_type, expires_in, user]
+      properties:
+        access_token:
+          type: string
+          description: 'JWT. Send as `Authorization: Bearer <token>`.'
+        token_type:
+          type: string
+          const: bearer
+        expires_in:
+          type: integer
+          description: Seconds until the token expires.
+        user:
+          $ref: '#/components/schemas/User'
+
+    CategoryTotal:
+      type: object
+      required: [category, amount, quantity]
+      properties:
+        category:
+          type: string
+          enum: [aircon, accessory, service]
+        amount:
+          $ref: '#/components/schemas/Money'
+        quantity:
+          type: integer
+          minimum: 0
+          description: Sum of `sale_items.quantity`.
+
+    PaymentMethodTotal:
+      type: object
+      required: [payment_method, amount, invoice_count]
+      properties:
+        payment_method:
+          type: string
+          enum: [cash, bank, kbzpay, wavepay, other]
+        amount:
+          $ref: '#/components/schemas/Money'
+        invoice_count:
+          type: integer
+          minimum: 0
+
+    DashboardToday:
+      type: object
+      required:
+        - date
+        - currency
+        - total_amount
+        - invoice_count
+        - void_count
+        - yesterday_total_amount
+        - change_percent
+        - by_category
+        - by_payment_method
+        - unpaid_count
+        - unpaid_amount
+        - generated_at
+      properties:
+        date:
+          type: string
+          format: date
+          description: Business day (YYYY-MM-DD) in Asia/Yangon.
+        currency:
+          type: string
+          const: MMK
+        total_amount:
+          allOf:
+            - $ref: '#/components/schemas/Money'
+          description: Sum of completed sales today (void excluded). Equals the sum of `by_category[].amount`.
+        invoice_count:
+          type: integer
+          minimum: 0
+          description: Number of completed sales today.
+        void_count:
+          type: integer
+          minimum: 0
+          description: Number of sales voided today (by `voided_at`, Yangon day).
+        yesterday_total_amount:
+          allOf:
+            - $ref: '#/components/schemas/Money'
+          description: Sum of completed sales on the previous Yangon day.
+        change_percent:
+          type: [number, 'null']
+          description: |
+            `(total_amount - yesterday_total_amount) / yesterday_total_amount * 100`, rounded to 1 decimal.
+            `null` when `yesterday_total_amount` is 0.
+        by_category:
+          type: array
+          minItems: 3
+          maxItems: 3
+          description: Always exactly 3 items, in order aircon, accessory, service. Zeros when nothing sold.
+          items:
+            $ref: '#/components/schemas/CategoryTotal'
+        by_payment_method:
+          type: array
+          description: |
+            Completed sales today with `payment_status` `paid` or `partial`, grouped by `payment_method`.
+            `amount` is the invoices' full `total_amount` (no amount-owed tracking). Methods with no sales are left out.
+          items:
+            $ref: '#/components/schemas/PaymentMethodTotal'
+        unpaid_count:
+          type: integer
+          minimum: 0
+          description: Completed sales today with `payment_status` `unpaid` or `partial`.
+        unpaid_amount:
+          allOf:
+            - $ref: '#/components/schemas/Money'
+          description: Sum of `total_amount` of those sales (full invoice amount; a `partial` label does not say how much is owed).
+        generated_at:
+          type: string
+          format: date-time
+          description: When this summary was computed, with offset (e.g. `+06:30`).
