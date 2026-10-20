@@ -30,25 +30,27 @@ Business decisions go into `docs/DECISIONS.md`.
 - [x] 0.5 Fake data generator (499 sales / 90 days)
 
 ### Phase 1 — Backend MVP (VPS)
-- [ ] 1.1 Error handling (shared error shape)
-- [ ] 1.2 Login with JWT
-- [ ] 1.3 `GET /dashboard/today`
-- [ ] 1.4 "Today" in Asia/Yangon (boundary tests)
-- [ ] 1.5 Contract tests (Schemathesis)
+- [x] 1.1 Error handling (shared error shape)
+- [x] 1.2 Login with JWT
+- [x] 1.3 `GET /dashboard/today`
+- [x] 1.4 "Today" in Asia/Yangon (boundary tests)
+- [x] 1.5 Contract tests (Schemathesis)
 
 ### Phase 2 — Android MVP (Windows) — can start after 0.3 is approved
-- [ ] 2.1 Dependencies + app structure
-- [ ] 2.2 API client matching the contract
+- [x] 2.1 Dependencies + app structure
+- [x] 2.2 API client matching the contract
 - [ ] 2.3 Login screen + saved token
 - [ ] 2.4 Today dashboard screen
 - [ ] 2.5 Loading, error, offline states
 - [ ] 2.6 Owner installs the APK and approves
 
 ### Phase 3 — Deploy (VPS)
-- [ ] 3.1 Docker Compose production setup
-- [ ] 3.2 Nginx + HTTPS + firewall
-- [ ] 3.3 Daily database backup + restore test
-- [ ] 3.4 App release build points to the real server
+- [ ] 3.1 Production-ready container (runtime-only image, auto-migrate, healthcheck, request logs)
+- [ ] 3.2 Daily database backup + restore test
+- [ ] 3.3 Login rate limiting (contract change: 429 on /auth/login) — after Windows finishes Phase 2
+- [ ] 3.4 Expose the API to phones over HTTPS — **needs owner answers**: domain? Cloudflare Tunnel (cloudflared already
+      runs on this server) or Nginx + Let's Encrypt?
+- [ ] 3.5 App release build points to the real server
 
 ### Phase 4 — Reports and charts
 - [ ] Date ranges, top products, by salesperson, payment methods

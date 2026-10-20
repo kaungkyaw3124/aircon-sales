@@ -49,3 +49,10 @@ Planner defaults, accepted unless the owner changes them:
 | D21 | VPS ports | Our Postgres `127.0.0.1:5433`, API `127.0.0.1:8000`. Port 5432 and 8080 belong to other projects: never touch them. |
 | D22 | Python | 3.14 on the VPS and in the API image (spec said 3.12+). |
 | D23 | Role filter | Implement the `sales` role filter on `/dashboard/today` now in Phase 1 (cheap now, as the contract describes). |
+
+## 2026-10-21 — End of Phase 1 review (Tasks 1.1–1.5)
+
+| # | Topic | Decision |
+|---|---|---|
+| D24 | Phase 1 | Approved. 61 tests, Schemathesis clean, live container answers login + dashboard per the contract. |
+| D25 | Login rate limiting | Needed before the API is exposed. Will add `429 rate_limited` to `/auth/login` in the contract (v0.1.1), **after** the Windows PC finishes Phase 2, so its contract tests don't break mid-run. |

@@ -5,93 +5,58 @@ Both machines can run at the same time. `docs/openapi.yaml` (approved, D19) is t
 
 ---
 
-# VPS section — Phase 1: Backend MVP
+# VPS section — Phase 3 (part 1): make the server dependable
 
 Status: READY
 
+Phase 1 is done and approved (D24). These tasks don't depend on how the API will be exposed to phones;
+that needs owner answers first (see `docs/PLAN.md`, Phase 3).
+
 General rules for this section:
-- All tests run against `aircon_test` only. Never reseed or migrate `aircon` from a test.
-- Response bodies must match `docs/openapi.yaml` exactly (field names, types, order of `by_category`).
-- "Now" must be injectable (a clock dependency), so tests can fix the time.
+- Never touch the other projects on this server (D21): container `telegram-product-requests-postgres-1`, ports 5432, 8080,
+  `cloudflared`. Only `aircon-*` containers and our own files.
+- No `sudo`. If something truly needs it, stop and mark BLOCKED with the exact commands.
+- **Do not change `docs/openapi.yaml`** in this section (the Windows PC is testing against it right now).
 
-## Task 1.1 — Error handling
-
-- **Stop for review:** no
-
-- Every 4xx/5xx response uses the shared shape `{"error": {"code", "message"}}`:
-  `422` → code `validation_error` (override FastAPI's default body), `404` → `not_found`,
-  `405` → `method_not_allowed`, unhandled exception → `500` `internal_error` (no stack trace in the body; log it).
-- Keep `GET /health` as is.
-
-### Done when
-- pytest: a bad body on any endpoint gives 422 in the shared shape; an unknown path gives 404 in the shared shape;
-  a route that raises gives 500 in the shared shape with no traceback text.
-- All tests pass. Report, commit, push.
-
-## Task 1.2 — Login with JWT
+## Task 3.1 — Production-ready container
 
 - **Stop for review:** no
 
-- `POST /auth/login` exactly as in the contract. Passwords checked with bcrypt (the seed uses bcrypt).
-- Wrong username, wrong password, or inactive user → the **same** `401 invalid_credentials` (don't reveal which).
-- JWT HS256, secret from `JWT_SECRET`, lifetime from `JWT_EXPIRE_MINUTES` (default 1440). Claims: `sub` (user id), `role`, `exp`.
-- A `get_current_user` dependency: missing / bad / expired token, or a user deactivated after login → `401 unauthorized`.
-- If `JWT_SECRET` is missing or shorter than 32 characters, the app refuses to start.
+- Split dependencies: `requirements.txt` (runtime only) and `requirements-dev.txt` (`-r requirements.txt` + pytest,
+  httpx, schemathesis, ...). The Docker image installs runtime only. The venv installs dev.
+- On container start, run `alembic upgrade head`, then start uvicorn (an entrypoint script). If the migration fails,
+  the container exits non-zero (no API running on an old schema).
+- Docker healthcheck on the `api` service calling `/health`.
+- uvicorn without `--reload`, with `--proxy-headers` and 2 workers.
+- Log to stdout in one line per request (method, path, status, duration ms). Never log passwords or tokens.
 
 ### Done when
-- pytest covers: correct login (200, fields match contract, `expires_in` matches config); wrong password; unknown user;
-  inactive user (all three give the identical 401 body); missing fields (422); expired token (401); token signed with
-  another secret (401); user deactivated after token was issued (401); short `JWT_SECRET` refuses to start.
+- `docker compose build api` image contains no pytest/schemathesis (`docker run --rm aircon-api pip list` check).
+- `docker compose down` then `docker compose up -d`: both containers healthy, `/health` OK, data still there
+  (row counts the same as before), login + `/dashboard/today` work via `curl`.
+- Starting the API against an empty test database runs the migration automatically (prove it, then clean up).
+- `docker compose logs api` shows request lines and contains no `password` or `Bearer` values.
 - All tests pass. Report, commit, push.
 
-## Task 1.3 — `GET /dashboard/today`
+## Task 3.2 — Daily database backup + restore test
 
-- **Stop for review:** no
+- **Stop for review:** **yes**
 
-Exactly as in the contract and D17, D18, D23:
-- Yangon business day → UTC range, as in `schema.md`. Completed sales only for totals.
-- `by_category` always 3 items in order aircon, accessory, service. `by_payment_method` leaves out empty methods.
-- `unpaid_count`/`unpaid_amount` = completed sales with status `unpaid` or `partial` (full amounts, D17).
-- `void_count` by `voided_at` on today's Yangon day (D18).
-- `change_percent` = `(today - yesterday) / yesterday * 100` rounded to 1 decimal (half away from zero); `null` if yesterday is 0.
-- Role `sales`: every number filtered to `sales.user_id = current user` (D23). Role `owner`: everything.
-- One or a few SQL queries with aggregates, not a Python loop over all rows.
+- `api/scripts/backup.sh`: `pg_dump` of `aircon` (custom format, via `docker exec aircon-db`) into
+  `~/aircon-backups/aircon-YYYY-MM-DD_HHMM.dump` (outside the repo, folder mode 700). Keeps the newest 14 dumps.
+  Exits non-zero and prints the reason on any failure.
+- `api/scripts/restore_check.sh <dump>`: restores into a scratch DB `aircon_restore_check`, compares row counts of every
+  table with `aircon`, prints them, then drops the scratch DB. Never touches `aircon` or `aircon_test`.
+- Schedule `backup.sh` daily at 02:30 Yangon with the **user's** crontab (`crontab -e` style, no sudo). Log to
+  `~/aircon-backups/backup.log`.
+- Document both scripts in `api/README.md`, including how to restore for real.
 
 ### Done when
-- pytest builds small, hand-made datasets (not the seed) and checks exact numbers for:
-  a normal day; an empty day (all zeros, `change_percent` null, `by_payment_method` empty);
-  a void sale excluded from totals but counted in `void_count`; a sale sold yesterday and voided today
-  (counts in today's `void_count`, not in yesterday's total); a `partial` sale appearing under its method **and** in unpaid;
-  a `sales` user seeing only their own sales; yesterday = 0 → `change_percent` null; a negative change (e.g. -12.5).
-- One test rebuilds the contract's `normal_day` example (the 5 invoices described in `openapi.yaml`) and checks
-  the response equals the example (except `generated_at`, `date`).
+- `backup.sh` run by hand creates a dump; running it 16 times (or faking old files) leaves only 14.
+- `restore_check.sh` on that dump prints identical row counts for every table and exits 0; the scratch DB is gone afterwards.
+- `crontab -l` shows the job. Report includes the line.
 - All tests pass. Report, commit, push.
-
-## Task 1.4 — Yangon day boundaries
-
-- **Stop for review:** no
-
-- With the clock fixed, test the edges: a sale at 23:59:59 Yangon counts today; at 00:00:00 the next day it doesn't;
-  a sale at 00:00:00 Yangon counts; a sale at 23:59 UTC that is already "tomorrow" in Yangon is not counted as today.
-- Test that the result does not depend on the server timezone (run the same test with `TZ=UTC` and `TZ=America/New_York`).
-
-### Done when
-- Those boundary tests pass. All tests pass. Report, commit, push.
-
-## Task 1.5 — Contract tests
-
-- **Stop for review:** **yes** (end of Phase 1)
-
-- Schemathesis against the app (in-process ASGI is fine), loading `docs/openapi.yaml`, with a valid token for
-  authenticated endpoints. Checks: status codes documented, responses match schemas, no 500s.
-- Run the live container too: rebuild `aircon-api`, then with the seeded `aircon` DB:
-  `curl` login as `owner` / `owner123`, then `GET /dashboard/today` with the token.
-
-### Done when
-- Schemathesis run passes with no failures.
-- The live `curl` sequence returns 200 and a body that matches the contract. Paste both responses (token shortened) in the report.
-- All tests pass. Report, commit, push.
-- **Stop for review.**
+- **Stop for review.** In the report, list what is still missing before the API can be opened to the internet.
 
 ---
 
