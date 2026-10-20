@@ -60,99 +60,66 @@ General rules for this section:
 
 ---
 
-# Windows PC section — Phase 2: Android MVP
+# Windows PC section — Phase 2 wrap-up
 
 Status: READY
 
-General rules for this section:
-- Work only in `/android` (and its own report/status files). Never touch `/api`.
-- The real API is not reachable from the PC yet (Phase 3). All tests use **MockWebServer** with JSON taken from the
-  contract examples. No test may need the network.
-- Kotlin + Jetpack Compose + Material 3, Hilt, Retrofit + Kotlin Serialization, DataStore. Versions through the
-  Gradle version catalog (`gradle/libs.versions.toml`). Keep `minSdk 26`.
-- Money is `Long` (kyat). Show it with thousands separators and "Ks", e.g. `3,660,000 Ks`. Never `Double` for money.
-- API base URL comes from `BuildConfig.API_BASE_URL` (debug default `http://10.0.2.2:8000/`, which is the PC from the emulator).
+Phase 2 is approved: the owner ran the app on a Xiaomi phone over USB against the VPS (D27).
 
-## Task 2.1 — App foundation
+General rules for this section:
+- Work only in `/android` (and its own report/status files). Never touch `/api`. **Do not change `docs/openapi.yaml`.**
+- All tests use MockWebServer / fixtures, never the network.
+
+## Task 2.6 — Verify the planner's debug-URL change + "run on phone" guide
 
 - **Stop for review:** no
 
-- Add dependencies: Hilt, Retrofit, Kotlin Serialization (+ Retrofit converter), OkHttp + MockWebServer (test),
-  DataStore, Navigation Compose, Robolectric, Roborazzi, kotlinx-coroutines-test, Turbine.
-- Package structure: `data/` (api, models, repository), `ui/` (login, dashboard, theme), `di/`.
-- `BuildConfig.API_BASE_URL` as above. `android:usesCleartextTraffic` allowed **only in debug** (network security config).
-- App label: "Aircon Sales".
+The planner changed the debug `API_BASE_URL` to `http://127.0.0.1:8000/` and updated `SetupTest` to match (D26, commit 0ae1e5d).
+- Check that change builds and all tests still pass. If anything else referred to `10.0.2.2`, update it.
+- Write `android/README.md` "Run on a phone or emulator" for the owner, in short numbered steps:
+  1. SSH tunnel: `ssh -p 10066 -N -L 127.0.0.1:8000:127.0.0.1:8000 administrator@93.127.132.69` (leave open).
+  2. adb from the owner's SDK at `D:\android studio\platform-tools\adb.exe`: `adb devices`, then `adb reverse tcp:8000 tcp:8000`
+     (again after every reconnect / emulator restart).
+  3. Xiaomi phones: Developer options → **Install via USB** must be on.
+  4. Run ▶ in Android Studio, log in `owner` / `owner123` (dev only).
+  5. Common errors and their fix: "Can't reach the server" (tunnel or adb reverse missing), `INSTALL_FAILED_USER_RESTRICTED`.
+- Add `android/run-on-phone.ps1` that finds the SDK from `local.properties`, runs `adb devices` and `adb reverse tcp:8000 tcp:8000`,
+  and prints a clear message if no device is connected. (The tunnel stays a manual step: it needs the owner's SSH login.)
 
 ### Done when
-- `.\gradlew assembleDebug` → BUILD SUCCESSFUL.
-- `.\gradlew test` → passes (at least one trivial Robolectric test proving the setup works).
+- `.\gradlew assembleDebug` and `.\gradlew test` pass.
+- `grep -r "10.0.2.2" android --include=*.kt --include=*.kts --include=*.md` finds nothing outside build output.
+- `run-on-phone.ps1` runs without a device and prints the "no device" message (exit code non-zero).
 - Report, commit, push.
 
-## Task 2.2 — API client matching the contract
+## Task 2.7 — Fixed brand colours and safer backup settings
 
 - **Stop for review:** no
 
-- Kotlin `@Serializable` models for `LoginRequest`, `LoginResponse`, `User`, `DashboardToday`, `CategoryTotal`,
-  `PaymentMethodTotal`, `Error`, using `@SerialName` for snake_case. `change_percent` is `Double?`.
-- Retrofit interface: `login`, `dashboardToday` (bearer token via an OkHttp interceptor).
-- Error mapping: any non-2xx body is parsed as the shared error shape into a typed result
-  (`ApiResult.Success / ApiError(code, message, httpStatus) / NetworkError`).
-- **Contract fixtures:** copy every response example from `docs/openapi.yaml` into
-  `android/app/src/test/resources/contract/<name>.json`. Add a test that reads `docs/openapi.yaml` (via a test-only
-  YAML library, path `../docs/openapi.yaml` from the project) and fails if any fixture differs from its example.
-  This keeps the app tied to the contract.
+- **D28:** fixed brand colours, no dynamic (wallpaper) colours. Primary `#0057B8` (blue), secondary `#00A3E0` (sky blue),
+  keep green ▲ / red ▼ for change. Light and dark themes both defined. Put the colours in one place so the owner can change them.
+- **D29:** `android:allowBackup="false"`, and backup/data-extraction rules exclude everything, so the saved token is never
+  copied into Android backups.
+- Re-record the Roborazzi screenshots with the new colours.
 
 ### Done when
-- Unit tests parse every fixture into its model without error, and the `normal_day` fixture gives `total_amount == 3660000L`.
-- The fixture-vs-contract test passes.
-- MockWebServer tests: login 200, login 401 → `ApiError("invalid_credentials")`, dashboard sends `Authorization: Bearer <token>`,
-  server down → `NetworkError`.
-- `.\gradlew test` passes. Report, commit, push.
+- `dynamicColor` is not used anywhere (`grep`), the theme uses the colours above.
+- `allowBackup="false"` in the manifest; backup rules exclude all data.
+- `.\gradlew recordRoborazziDebug` then `.\gradlew verifyRoborazziDebug` pass; new images committed.
+- `.\gradlew test` and `.\gradlew lint` pass (no lint errors).
+- Report, commit, push.
 
-## Task 2.3 — Login screen + saved token
+## Task 2.8 — Previews in Android Studio
 
-- **Stop for review:** no
+- **Stop for review:** **yes**
 
-- Login screen: username, password (hidden), Login button, loading state, error text from the API message.
-- On success, save token + user (DataStore) and go to the dashboard. On app start, a saved token goes straight to the dashboard.
-- Logout action on the dashboard clears the token and returns to login.
-- A 401 from any authenticated call clears the token and returns to login.
-
-### Done when
-- Robolectric UI tests: successful login navigates to dashboard; wrong password shows the API message; button disabled
-  while loading and when fields are empty; saved token skips login; 401 on dashboard returns to login.
-- `.\gradlew test` passes. Report, commit, push.
-
-## Task 2.4 — Today dashboard screen
-
-- **Stop for review:** no
-
-Shows `/dashboard/today` (D17, D18):
-- Big total (`3,660,000 Ks`), invoice count, date.
-- Change vs yesterday: ▲ green / ▼ red with percent; "No sales yesterday" when `change_percent` is null.
-- Three category cards (Aircon / Accessories / Service) with amount and quantity.
-- Payment methods list. "Not fully paid": count and amount. "Voided today": count (only if > 0).
-- Pull to refresh.
+The owner wants to look at screens inside Android Studio without running the app.
+- Add Compose `@Preview` functions (light and dark) for: login (empty, loading, error), dashboard (normal day, empty day,
+  negative change, loading, error, offline). Use the contract fixtures' data (as Kotlin values), no network, no Hilt.
+- Previews live next to each screen (`*Previews.kt`) and are not in the release build's code paths.
 
 ### Done when
-- ViewModel tests with the `normal_day` and `empty_day` fixtures check the displayed values
-  (formatted strings, arrow direction, null change text).
-- Roborazzi screenshot tests for: normal day, empty day, negative change. Recorded images committed.
-- `.\gradlew test` and `.\gradlew verifyRoborazziDebug` pass. Report, commit, push.
-
-## Task 2.5 — Loading, error and offline states
-
-- **Stop for review:** **yes** (end of Phase 2 build; owner looks at screenshots)
-
-- Loading indicator on first load. Error state with message and Retry.
-- Offline: keep showing the last loaded dashboard with "Last updated 10:42" and a banner "Offline — showing saved data".
-  (Cache the last `DashboardToday` JSON in DataStore.)
-- Timeout 15 s.
-
-### Done when
-- Tests: server error shows message + Retry, Retry reloads; network down with cached data shows the banner and the
-  saved numbers; network down with no cache shows the error state.
-- Roborazzi screenshots for: loading, error, offline banner. Committed.
-- `.\gradlew assembleDebug`, `.\gradlew test`, `.\gradlew verifyRoborazziDebug`, `.\gradlew lint` pass (no lint errors).
-- Report lists the screenshot file paths so the owner can open them.
+- `.\gradlew assembleDebug`, `.\gradlew test`, `.\gradlew verifyRoborazziDebug`, `.\gradlew lint` pass.
+- Report lists each preview function and the file it's in, and tells the owner how to open them
+  (open the file → **Split** or **Design** view, top-right of the editor).
 - **Stop for review.**

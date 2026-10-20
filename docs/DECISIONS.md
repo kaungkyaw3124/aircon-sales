@@ -62,3 +62,6 @@ Planner defaults, accepted unless the owner changes them:
 | # | Topic | Decision |
 |---|---|---|
 | D26 | Debug API address | Debug build uses `http://127.0.0.1:8000/` + `adb reverse tcp:8000 tcp:8000` instead of `10.0.2.2` (the emulator route failed on the owner's PC). Works for the emulator and a USB phone. PC → VPS via `ssh -p 10066 -N -L 127.0.0.1:8000:127.0.0.1:8000 administrator@93.127.132.69`. Changed directly by the planner (commit message says so); Windows: verify `.\gradlew test` on the next run. |
+| D27 | Phase 2 | Approved: owner ran the app on a Xiaomi phone over USB against the VPS API. |
+| D28 | App colours | Fixed brand colours, no wallpaper colours. Primary `#0057B8`, secondary `#00A3E0`. Owner can change them later. |
+| D29 | Android backup | `allowBackup="false"`; the saved login token is never copied into backups. |

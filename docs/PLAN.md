@@ -39,10 +39,13 @@ Business decisions go into `docs/DECISIONS.md`.
 ### Phase 2 — Android MVP (Windows) — can start after 0.3 is approved
 - [x] 2.1 Dependencies + app structure
 - [x] 2.2 API client matching the contract
-- [ ] 2.3 Login screen + saved token
-- [ ] 2.4 Today dashboard screen
-- [ ] 2.5 Loading, error, offline states
-- [ ] 2.6 Owner installs the APK and approves
+- [x] 2.3 Login screen + saved token
+- [x] 2.4 Today dashboard screen
+- [x] 2.5 Loading, error, offline states
+- [x] Owner ran the app on a Xiaomi phone (USB + SSH tunnel) — approved (D27)
+- [ ] 2.6 Verify debug-URL change (D26) + "run on phone" guide and script
+- [ ] 2.7 Fixed brand colours (D28) + no Android backup of the token (D29)
+- [ ] 2.8 Compose previews in Android Studio
 
 ### Phase 3 — Deploy (VPS)
 - [ ] 3.1 Production-ready container (runtime-only image, auto-migrate, healthcheck, request logs)
