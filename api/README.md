@@ -24,3 +24,34 @@ Never use these on a real server. `--reset` refuses to run when `APP_ENV=product
 - Healthcheck calls `/health`; `docker ps` shows `healthy`.
 - Logs (`docker compose logs api`): one line per request, `METHOD /path STATUS 12.3ms`. Path only (no query string,
   headers or body), so tokens and passwords never reach the log. `/health` is not logged (the healthcheck calls it every 10 s).
+
+## Backups
+
+`scripts/backup.sh` dumps the `aircon` database (`pg_dump -Fc` inside `aircon-db`) to
+`~/aircon-backups/aircon-YYYY-MM-DD_HHMM.dump` (Yangon time; folder mode 700, files 600, outside the repo).
+It keeps the newest 14 dumps and exits non-zero with a `backup FAILED: <reason>` line on any error.
+
+It runs daily at 02:30 Yangon from the `administrator` user's crontab (the server clock is UTC; Yangon is UTC+6:30, no DST):
+```
+0 20 * * * /home/administrator/aircon-sales/api/scripts/backup.sh >> /home/administrator/aircon-backups/backup.log 2>&1
+```
+Check it: `tail ~/aircon-backups/backup.log`.
+
+`scripts/restore_check.sh <dump>` proves a dump is usable: it restores it into a scratch database `aircon_restore_check`,
+prints the row count of every table next to the live `aircon` counts, then drops the scratch database.
+Exit 0 only if every count matches (on a busy day, sales made after the dump will show as a difference).
+It never touches `aircon` or `aircon_test`.
+
+### Restore for real (replaces all current data)
+
+Only do this when the live data is lost or broken. Run `backup.sh` first, so today's state is kept too.
+```
+cd ~/aircon-sales/api
+./scripts/restore_check.sh ~/aircon-backups/<dump>          # 1. make sure the dump is good
+docker compose stop api                                      # 2. nothing writes while restoring
+docker exec -i aircon-db pg_restore -U aircon -d aircon --clean --if-exists --no-owner --exit-on-error \
+  < ~/aircon-backups/<dump>                                  # 3. replace the data
+docker compose start api                                     # 4. migrations run on start, then the API
+curl -s 127.0.0.1:8000/health
+```
+If the dump is from an older schema, the API's start-up `alembic upgrade head` brings it up to date.
