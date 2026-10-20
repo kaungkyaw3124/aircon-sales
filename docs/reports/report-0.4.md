@@ -80,4 +80,4 @@ copied by hand and the tests cover the key ones.)
 - The API container does not run migrations on start. For now `alembic upgrade head` is run from the host venv.
 
 ## 8. Commit
-See `git log` (`task 0.4: database + API skeleton`).
+`c6fcf8f` — `task 0.4: database + API skeleton`
