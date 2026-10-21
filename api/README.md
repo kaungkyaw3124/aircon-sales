@@ -19,11 +19,21 @@ Never use these on a real server. `--reset` refuses to run when `APP_ENV=product
 ## Container
 
 - The image installs `requirements.txt` only (runtime). Test tools live in `requirements-dev.txt`.
-- On start, `docker/entrypoint.sh` runs `alembic upgrade head`, then uvicorn (2 workers, `--proxy-headers`).
+- On start, `docker/entrypoint.sh` runs `alembic upgrade head`, then uvicorn (2 workers, `--no-proxy-headers`:
+  the app itself reads `X-Forwarded-For`, and only from IPs listed in `TRUSTED_PROXIES`).
   If the migration fails the container exits non-zero, so no API runs on an old schema.
 - Healthcheck calls `/health`; `docker ps` shows `healthy`.
 - Logs (`docker compose logs api`): one line per request, `METHOD /path STATUS 12.3ms`. Path only (no query string,
   headers or body), so tokens and passwords never reach the log. `/health` is not logged (the healthcheck calls it every 10 s).
+
+## Login rate limit
+
+5 failed logins per username, or 20 per client IP, in 15 minutes → `429 rate_limited` with `Retry-After` (D30).
+Counts live in the `login_failures` table. To unlock someone early:
+`docker exec aircon-db psql -U aircon -d aircon -c "delete from login_failures where username='<name>'"`.
+
+Behind a reverse proxy on this host, requests reach the container from the Docker gateway (`172.19.0.1`);
+set `TRUSTED_PROXIES=172.19.0.1` then, or every client shares one IP counter.
 
 ## Backups
 

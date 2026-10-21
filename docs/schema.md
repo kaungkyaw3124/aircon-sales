@@ -128,6 +128,25 @@ so it can be entered again on the corrected sale, while `sale_item_serials.seria
 2. Delete those rows from `sale_item_serials`.
 3. Set the sale to `status = 'void'` with `voided_at` and `void_reason`.
 
+### `login_failures`
+
+One row per failed login, for the login rate limit (D30, migration `0002`). Not business data.
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| `id` | `bigint` identity | no | PK |
+| `username` | `text` | no | the username as typed (NUL removed, first 200 chars); may not exist in `users` |
+| `ip` | `text` | no | client IP (from `X-Forwarded-For` only when the peer is in `TRUSTED_PROXIES`) |
+| `failed_at` | `timestamptz` | no | |
+
+Indexes: `(username, failed_at)`, `(ip, failed_at)`, `(failed_at)`.
+
+- Login is refused with `429` when the username has ≥ 5 rows, or the IP ≥ 20 rows, with `failed_at` in the last 15 minutes.
+  `Retry-After` = when the oldest of those last 5 (or 20) rows leaves the window.
+- A successful login deletes that username's rows (the IP rows stay).
+- Every failed login first deletes all rows older than 15 minutes, so the table stays small.
+- In Postgres, not in memory, so both uvicorn workers share the counts.
+
 ## Indexes
 
 Besides the primary keys and the UNIQUE constraints above (`users.username`,

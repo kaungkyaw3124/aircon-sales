@@ -144,3 +144,13 @@ class VoidedSaleSerial(Base):
     warranty_until: Mapped[date | None] = mapped_column(Date)
     voided_at: Mapped[datetime] = mapped_column(TZ)
     __table_args__ = (Index(None, "original_sale_item_id"), Index(None, "serial_no"))
+
+
+class LoginFailure(Base):
+    """One row per failed login, for the rate limit (D30). Rows older than the window are deleted on the next failure."""
+    __tablename__ = "login_failures"
+    id: Mapped[int] = pk()
+    username: Mapped[str] = mapped_column(Text)
+    ip: Mapped[str] = mapped_column(Text)
+    failed_at: Mapped[datetime] = mapped_column(TZ)
+    __table_args__ = (Index(None, "username", "failed_at"), Index(None, "ip", "failed_at"), Index(None, "failed_at"))

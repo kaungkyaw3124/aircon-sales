@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Aircon Sales Dashboard API
-  version: 0.1.0
+  version: 0.1.1
   description: |
     API for the aircon sales dashboard app. Phase 1 endpoints only.
 
@@ -83,6 +83,24 @@ paths:
                     error:
                       code: invalid_credentials
                       message: Wrong username or password.
+        '429':
+          description: Too many failed logins for this username or from this client. Wait for `Retry-After` seconds.
+          headers:
+            Retry-After:
+              description: Seconds until login is allowed again.
+              schema:
+                type: integer
+                minimum: 1
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                rate_limited:
+                  value:
+                    error:
+                      code: rate_limited
+                      message: Too many login attempts. Try again in 15 minutes.
         '422':
           $ref: '#/components/responses/ValidationError'
 

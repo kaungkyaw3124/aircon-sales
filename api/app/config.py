@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     jwt_secret: str
     jwt_expire_minutes: int = 1440
     business_tz: str = "Asia/Yangon"
+    # comma-separated proxy IPs whose X-Forwarded-For we believe; empty = trust none
+    trusted_proxies: str = ""
 
     @field_validator("jwt_secret")
     @classmethod
