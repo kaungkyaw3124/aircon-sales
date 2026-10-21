@@ -1,125 +1,110 @@
 # Next tasks
 
 Written by the planner on 2026-10-21. Run `/next` on **each** machine; each does only its own section.
-Both machines can run at the same time. `docs/openapi.yaml` (approved, D19) is the contract for both sides.
+Run the **VPS first** this time: the Windows task 2.9 needs the contract change that VPS task 3.3 pushes.
 
 ---
 
-# VPS section — Phase 3 (part 1): make the server dependable
+# VPS section — Phase 3 (part 2): ready for the internet
 
 Status: READY
 
-Phase 1 is done and approved (D24). These tasks don't depend on how the API will be exposed to phones;
-that needs owner answers first (see `docs/PLAN.md`, Phase 3).
+General rules: as before (D21: never touch other projects' containers or ports; no `sudo`; tests on `aircon_test` only).
 
-General rules for this section:
-- Never touch the other projects on this server (D21): container `telegram-product-requests-postgres-1`, ports 5432, 8080,
-  `cloudflared`. Only `aircon-*` containers and our own files.
-- No `sudo`. If something truly needs it, stop and mark BLOCKED with the exact commands.
-- **Do not change `docs/openapi.yaml`** in this section (the Windows PC is testing against it right now).
-
-## Task 3.1 — Production-ready container
+## Task 3.3 — Login rate limiting (contract v0.1.1)
 
 - **Stop for review:** no
 
-- Split dependencies: `requirements.txt` (runtime only) and `requirements-dev.txt` (`-r requirements.txt` + pytest,
-  httpx, schemathesis, ...). The Docker image installs runtime only. The venv installs dev.
-- On container start, run `alembic upgrade head`, then start uvicorn (an entrypoint script). If the migration fails,
-  the container exits non-zero (no API running on an old schema).
-- Docker healthcheck on the `api` service calling `/health`.
-- uvicorn without `--reload`, with `--proxy-headers` and 2 workers.
-- Log to stdout in one line per request (method, path, status, duration ms). Never log passwords or tokens.
+This task **may change `docs/openapi.yaml`** (owner approved, D25), only as described here:
+- Add a `429` response to `POST /auth/login` using the shared error shape, with one example named `rate_limited`:
+  `{"error": {"code": "rate_limited", "message": "Too many login attempts. Try again in 15 minutes."}}`,
+  and a `Retry-After` header (seconds). Bump `info.version` to `0.1.1`. Nothing else in the contract changes.
+- Rule (D30): **5 failed logins per username in 15 minutes**, or **20 failed logins per client IP in 15 minutes** → 429
+  until the window passes. A successful login resets that username's counter. Counters in **Postgres** (2 workers),
+  new table via a new Alembic migration; old rows cleaned up automatically. Client IP from the proxy header only when the request
+  comes from a trusted proxy address (configurable; default: no proxy trusted).
+- Update `schema.md` with the new table.
 
 ### Done when
-- `docker compose build api` image contains no pytest/schemathesis (`docker run --rm aircon-api pip list` check).
-- `docker compose down` then `docker compose up -d`: both containers healthy, `/health` OK, data still there
-  (row counts the same as before), login + `/dashboard/today` work via `curl`.
-- Starting the API against an empty test database runs the migration automatically (prove it, then clean up).
-- `docker compose logs api` shows request lines and contains no `password` or `Bearer` values.
+- `npx @redocly/cli lint docs/openapi.yaml` passes; the only diff in the contract is the 429 response, header, example and version.
+- pytest: 5 wrong passwords → 6th attempt 429 (even with the right password) with `Retry-After`; another username still works;
+  after the window (clock moved) login works again; a success resets the counter; the IP limit triggers across different usernames;
+  counters are shared (two app instances in one test see the same count).
+- Schemathesis still passes with the new contract.
 - All tests pass. Report, commit, push.
 
-## Task 3.2 — Daily database backup + restore test
+## Task 3.4 — Production hardening
+
+- **Stop for review:** no
+
+- When `APP_ENV=production`: `/docs`, `/redoc`, `/openapi.json` are **off** (404). Dev keeps them.
+- Docker log rotation in compose for both services: `max-size: 10m`, `max-file: 5`.
+- `api/scripts/create_user.py`: create or update a user (`--username`, `--full-name`, `--role owner|sales`), password typed twice
+  at a hidden prompt (never on the command line), minimum 10 characters; `--deactivate` to disable a user. Works in production
+  (it's not destructive). Document in `api/README.md`.
+- Backups (D31): also keep **one dump per month for 12 months** (the first dump of each month), in addition to the 14 daily.
+  After each backup, write `~/aircon-backups/LAST_OK` with the timestamp; on failure write `~/aircon-backups/LAST_FAILED`.
+
+### Done when
+- pytest: with `APP_ENV=production`, `/docs`, `/redoc`, `/openapi.json` return 404 in the shared error shape; dev returns 200.
+- pytest: `create_user.py` creates a user who can log in; refuses a short password; `--deactivate` makes login fail with 401;
+  the password never appears in the process arguments.
+- `docker inspect aircon-api` shows the log options; containers healthy after `docker compose up -d`.
+- Backup retention test with fake files: 14 newest daily + first-of-month for the last 12 months kept, the rest deleted.
+- All tests pass. Report, commit, push.
+
+## Task 3.5 — Go-live checklist
 
 - **Stop for review:** **yes**
 
-- `api/scripts/backup.sh`: `pg_dump` of `aircon` (custom format, via `docker exec aircon-db`) into
-  `~/aircon-backups/aircon-YYYY-MM-DD_HHMM.dump` (outside the repo, folder mode 700). Keeps the newest 14 dumps.
-  Exits non-zero and prints the reason on any failure.
-- `api/scripts/restore_check.sh <dump>`: restores into a scratch DB `aircon_restore_check`, compares row counts of every
-  table with `aircon`, prints them, then drops the scratch DB. Never touches `aircon` or `aircon_test`.
-- Schedule `backup.sh` daily at 02:30 Yangon with the **user's** crontab (`crontab -e` style, no sudo). Log to
-  `~/aircon-backups/backup.log`.
-- Document both scripts in `api/README.md`, including how to restore for real.
+Write `docs/GO-LIVE.md`: the exact, numbered steps the owner (with Claude Code) will follow on the day real data starts:
+new secrets, `APP_ENV=production`, empty database (no seed), create real users, backup check, restore drill, how to roll back.
+Include a "Before exposing to the internet" section listing what 3.6 (HTTPS) still needs from the owner.
+Do **not** switch anything to production in this task.
 
 ### Done when
-- `backup.sh` run by hand creates a dump; running it 16 times (or faking old files) leaves only 14.
-- `restore_check.sh` on that dump prints identical row counts for every table and exits 0; the scratch DB is gone afterwards.
-- `crontab -l` shows the job. Report includes the line.
+- `docs/GO-LIVE.md` exists; every command in it was dry-run where it's safe (say which ones in the report).
 - All tests pass. Report, commit, push.
-- **Stop for review.** In the report, list what is still missing before the API can be opened to the internet.
-
----
-
-# Windows PC section — Phase 2 wrap-up
-
-Status: READY
-
-Phase 2 is approved: the owner ran the app on a Xiaomi phone over USB against the VPS (D27).
-
-General rules for this section:
-- Work only in `/android` (and its own report/status files). Never touch `/api`. **Do not change `docs/openapi.yaml`.**
-- All tests use MockWebServer / fixtures, never the network.
-
-## Task 2.6 — Verify the planner's debug-URL change + "run on phone" guide
-
-- **Stop for review:** no
-
-The planner changed the debug `API_BASE_URL` to `http://127.0.0.1:8000/` and updated `SetupTest` to match (D26, commit 0ae1e5d).
-- Check that change builds and all tests still pass. If anything else referred to `10.0.2.2`, update it.
-- Write `android/README.md` "Run on a phone or emulator" for the owner, in short numbered steps:
-  1. SSH tunnel: `ssh -p 10066 -N -L 127.0.0.1:8000:127.0.0.1:8000 administrator@93.127.132.69` (leave open).
-  2. adb from the owner's SDK at `D:\android studio\platform-tools\adb.exe`: `adb devices`, then `adb reverse tcp:8000 tcp:8000`
-     (again after every reconnect / emulator restart).
-  3. Xiaomi phones: Developer options → **Install via USB** must be on.
-  4. Run ▶ in Android Studio, log in `owner` / `owner123` (dev only).
-  5. Common errors and their fix: "Can't reach the server" (tunnel or adb reverse missing), `INSTALL_FAILED_USER_RESTRICTED`.
-- Add `android/run-on-phone.ps1` that finds the SDK from `local.properties`, runs `adb devices` and `adb reverse tcp:8000 tcp:8000`,
-  and prints a clear message if no device is connected. (The tunnel stays a manual step: it needs the owner's SSH login.)
-
-### Done when
-- `.\gradlew assembleDebug` and `.\gradlew test` pass.
-- `grep -r "10.0.2.2" android --include=*.kt --include=*.kts --include=*.md` finds nothing outside build output.
-- `run-on-phone.ps1` runs without a device and prints the "no device" message (exit code non-zero).
-- Report, commit, push.
-
-## Task 2.7 — Fixed brand colours and safer backup settings
-
-- **Stop for review:** no
-
-- **D28:** fixed brand colours, no dynamic (wallpaper) colours. Primary `#0057B8` (blue), secondary `#00A3E0` (sky blue),
-  keep green ▲ / red ▼ for change. Light and dark themes both defined. Put the colours in one place so the owner can change them.
-- **D29:** `android:allowBackup="false"`, and backup/data-extraction rules exclude everything, so the saved token is never
-  copied into Android backups.
-- Re-record the Roborazzi screenshots with the new colours.
-
-### Done when
-- `dynamicColor` is not used anywhere (`grep`), the theme uses the colours above.
-- `allowBackup="false"` in the manifest; backup rules exclude all data.
-- `.\gradlew recordRoborazziDebug` then `.\gradlew verifyRoborazziDebug` pass; new images committed.
-- `.\gradlew test` and `.\gradlew lint` pass (no lint errors).
-- Report, commit, push.
-
-## Task 2.8 — Previews in Android Studio
-
-- **Stop for review:** **yes**
-
-The owner wants to look at screens inside Android Studio without running the app.
-- Add Compose `@Preview` functions (light and dark) for: login (empty, loading, error), dashboard (normal day, empty day,
-  negative change, loading, error, offline). Use the contract fixtures' data (as Kotlin values), no network, no Hilt.
-- Previews live next to each screen (`*Previews.kt`) and are not in the release build's code paths.
-
-### Done when
-- `.\gradlew assembleDebug`, `.\gradlew test`, `.\gradlew verifyRoborazziDebug`, `.\gradlew lint` pass.
-- Report lists each preview function and the file it's in, and tells the owner how to open them
-  (open the file → **Split** or **Design** view, top-right of the editor).
 - **Stop for review.**
+
+---
+
+# Windows PC section — contract v0.1.1 + look
+
+Status: READY
+
+General rules: only `/android`; never touch `/api`; **do not change `docs/openapi.yaml`**; tests never use the network.
+
+## Task 2.9 — Handle "too many login attempts" (contract v0.1.1)
+
+- **Stop for review:** no
+
+- **First:** `git pull` and check `docs/openapi.yaml` has `info.version: 0.1.1` and a `rate_limited` example on `POST /auth/login`.
+  If not, stop and mark this task BLOCKED with "run `/next` on the VPS first (task 3.3)". Do not edit the contract yourself.
+- Add the fixture `contract/rate_limited.json` (so `ContractFixturesTest` passes).
+- Login screen on 429: show the API's message, and disable the Log in button for the `Retry-After` seconds, with a countdown
+  ("Try again in 14:52").
+
+### Done when
+- `ContractFixturesTest` passes with the new example.
+- Tests: a 429 from MockWebServer shows the message and the countdown; the button is enabled again when it reaches 0
+  (use a test clock, don't sleep).
+- Roborazzi screenshot of the rate-limited login screen, committed.
+- `.\gradlew test`, `.\gradlew verifyRoborazziDebug`, `.\gradlew lint` pass. Report, commit, push.
+
+## Task 2.10 — Neutral backgrounds + release build hardening
+
+- **Stop for review:** **yes**
+
+- **D32:** backgrounds and cards are neutral: light theme background `#FFFFFF`, cards `#F2F4F7` (no purple/pink tint);
+  dark theme background `#121212`, cards `#1E1E1E`. Keep the brand blue for buttons and the title accent.
+- Release build: turn on R8 (`isMinifyEnabled = true`, `isShrinkResources = true`) with the keep rules Retrofit,
+  Kotlin Serialization and Hilt need. Release must still use HTTPS only (no cleartext).
+- Re-record all screenshots.
+
+### Done when
+- `.\gradlew assembleRelease` succeeds (unsigned is fine) and `.\gradlew assembleDebug` too.
+- A unit test (or JSON round-trip test run against the release variant, if AGP allows) proves serialization models survive R8;
+  otherwise explain in the report what was checked instead.
+- `.\gradlew recordRoborazziDebug`, then `verifyRoborazziDebug`, `test`, `lint` pass. New images committed.
+- Report lists the screenshot paths. **Stop for review.**

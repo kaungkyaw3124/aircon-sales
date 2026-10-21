@@ -43,17 +43,20 @@ Business decisions go into `docs/DECISIONS.md`.
 - [x] 2.4 Today dashboard screen
 - [x] 2.5 Loading, error, offline states
 - [x] Owner ran the app on a Xiaomi phone (USB + SSH tunnel) — approved (D27)
-- [ ] 2.6 Verify debug-URL change (D26) + "run on phone" guide and script
-- [ ] 2.7 Fixed brand colours (D28) + no Android backup of the token (D29)
-- [ ] 2.8 Compose previews in Android Studio
+- [x] 2.6 Verify debug-URL change (D26) + "run on phone" guide and script
+- [x] 2.7 Fixed brand colours (D28) + no Android backup of the token (D29)
+- [x] 2.8 Compose previews in Android Studio
 
 ### Phase 3 — Deploy (VPS)
-- [ ] 3.1 Production-ready container (runtime-only image, auto-migrate, healthcheck, request logs)
-- [ ] 3.2 Daily database backup + restore test
-- [ ] 3.3 Login rate limiting (contract change: 429 on /auth/login) — after Windows finishes Phase 2
-- [ ] 3.4 Expose the API to phones over HTTPS — **needs owner answers**: domain? Cloudflare Tunnel (cloudflared already
-      runs on this server) or Nginx + Let's Encrypt?
-- [ ] 3.5 App release build points to the real server
+- [x] 3.1 Production-ready container (runtime-only image, auto-migrate, healthcheck, request logs)
+- [x] 3.2 Daily database backup + restore test
+- [ ] 3.3 Login rate limiting (contract v0.1.1: 429) + Windows 2.9 (app handles 429)
+- [ ] 3.4 Production hardening (docs off, log rotation, create-user script, monthly backups)
+- [ ] 3.5 Go-live checklist (`docs/GO-LIVE.md`)
+- [ ] 2.10 Neutral backgrounds + R8 release build
+- [ ] 3.6 Expose the API to phones over HTTPS — **needs owner answers**: domain? Cloudflare Tunnel or Nginx + Let's Encrypt?
+- [ ] 3.7 Off-site backup copy — **needs owner answer**: where?
+- [ ] 3.8 App release build points to the real server, signed APK for the owner's phone
 
 ### Phase 4 — Reports and charts
 - [ ] Date ranges, top products, by salesperson, payment methods

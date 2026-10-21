@@ -65,3 +65,12 @@ Planner defaults, accepted unless the owner changes them:
 | D27 | Phase 2 | Approved: owner ran the app on a Xiaomi phone over USB against the VPS API. |
 | D28 | App colours | Fixed brand colours, no wallpaper colours. Primary `#0057B8`, secondary `#00A3E0`. Owner can change them later. |
 | D29 | Android backup | `allowBackup="false"`; the saved login token is never copied into backups. |
+
+## 2026-10-21 — Review of 2.6–2.8 and 3.1–3.2
+
+| # | Topic | Decision |
+|---|---|---|
+| D30 | Login rate limit | 5 failed logins per username or 20 per IP in 15 minutes → `429 rate_limited` with `Retry-After`. Counters in Postgres. Contract becomes v0.1.1. |
+| D31 | Backup retention | 14 daily + first dump of each month for 12 months. Off-site copy: **waiting for owner** (where?). |
+| D32 | App backgrounds | Neutral: white / `#F2F4F7` cards (light), `#121212` / `#1E1E1E` (dark). Brand blue stays for buttons and accents. |
+| D33 | Token lifetime | Keep 24 h for now; logout only clears the phone. Revisit if staff phones get lost. |

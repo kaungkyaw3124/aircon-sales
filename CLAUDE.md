@@ -103,7 +103,7 @@ cd android
 ```
 cd api
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt   # venv: runtime + test deps (the image uses requirements.txt only)
 pytest                          # all tests
 uvicorn app.main:app --reload   # run locally on :8000
 ```
@@ -114,7 +114,7 @@ uvicorn app.main:app --reload   # run locally on :8000
 Tests: JUnit, Robolectric, MockWebServer (fake API), Roborazzi (screenshots).
 Min SDK 26.
 
-**API:** Python 3.12, FastAPI, SQLAlchemy 2, Alembic (migrations), PostgreSQL, JWT auth.
+**API:** Python 3.14 (D22), FastAPI, SQLAlchemy 2, Alembic (migrations), PostgreSQL, JWT auth.
 Tests: pytest, httpx test client, Schemathesis (contract tests).
 Run with Docker Compose (API + Postgres).
 
