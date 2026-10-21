@@ -1,12 +1,5 @@
-# Add project specific R8 rules here.
-# AGP will combine all keep rule files in src/main/keepRules to pass to R8
+# App-specific R8 rules. AGP combines all keep rule files in src/main/keepRules.
 #
-# For more details, see
-#   https://d.android.com/r/tools/r8/keep-rules
-
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# None needed yet: Retrofit, kotlinx.serialization and Hilt ship their own rules in their jars
+# (see build/outputs/mapping/release/configuration.txt). They keep the @Serializable companions and
+# serializer() methods, the AirconApi methods, and the Signature attribute Retrofit reads.

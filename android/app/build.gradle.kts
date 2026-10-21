@@ -32,10 +32,9 @@ android {
         release {
             // shortcut: placeholder until the real server exists, set it in task 3.4
             buildConfigField("String", "API_BASE_URL", "\"https://api.invalid/\"")
-            optimization {
-                enable = true
-                packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
-            }
+            // R8 on the whole app; keep rules in src/main/keepRules (libraries ship their own too).
+            isMinifyEnabled = true
+            isShrinkResources = true
         }
     }
     compileOptions {

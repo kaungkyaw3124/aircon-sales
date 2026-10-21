@@ -1,4 +1,4 @@
-# Report 2.9
+﻿# Report 2.9
 
 ## 1. Goal
 Task 2.9: Handle "too many login attempts" (contract v0.1.1)
@@ -23,7 +23,7 @@ DONE
 - `ui/login/LoginScreen.kt`: `LoginContent` takes `retryIn` and shows "Try again in m:ss" under the API message.
 - `test/resources/contract/rate_limited.json` (new): fixture identical to the contract example.
 - `test/.../data/ApiClientTest.kt`: new test, 429 maps to `ApiError(..., 429, 900)`.
-- `test/.../ui/LoginFlowTest.kt`: new test, 429 with `Retry-After: 900` → message, `15:00`, `14:52` after 8 s, `0:01`, then button enabled.
+- `test/.../ui/LoginFlowTest.kt`: new test, 429 with `Retry-After: 900` â†’ message, `15:00`, `14:52` after 8 s, `0:01`, then button enabled.
 - `test/.../ui/login/LoginScreenshotTest.kt` (new) + `test/screenshots/login_rate_limited.png`: the rate-limited screen at 14:52.
 
 ## 5. Decisions I made
@@ -41,4 +41,4 @@ DONE
 - No Android Studio preview added for the rate-limited state (not asked).
 
 ## 8. Commit
-See `git log` for `task 2.9: handle too many login attempts`.
+8510d86 `task 2.9: handle too many login attempts`
