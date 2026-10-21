@@ -2,21 +2,20 @@
 
 Overwritten by Claude Code at the end of every `/next` run on the Windows PC.
 
-- **Last task:** 2.8 — Previews in Android Studio
+- **Last task:** 2.10: Neutral backgrounds + release build hardening
 - **Status:** DONE, stopped for review
-- **Commit:** b24bc1d `task 2.8: previews in Android Studio`
-- **Tasks this run:** 2.6 (57e6ae2), 2.7 (d0c8945), 2.8 (b24bc1d). All DONE.
+- **Commit:** aa7d8f1 `task 2.10: neutral backgrounds + release build hardening`
+- **Tasks this run:** 2.9 (8510d86), 2.10 (aa7d8f1). Both DONE.
 
 ## Open questions for the owner
-- Do the previews (`LoginPreviews.kt`, `DashboardPreviews.kt`, light + dark) show what you want to check? Look at the dark versions especially.
-- Backgrounds and cards keep Material's default light grey with a faint purple tint. OK, or pure white/grey (or light blue)?
+- Do the neutral backgrounds look right? See `android/app/src/test/screenshots/dashboard_normal_day.png` (light) and the dark previews in Android Studio.
+- To try the release build on the phone it must be signed. Make a release signing key now (kept out of git), or wait for 3.6 (HTTPS) when the release URL is known?
 
 ## Facts for the planner
-- Planner's D26 change needed nothing more: no other `10.0.2.2` references. `android/README.md` + `android/run-on-phone.ps1` added (exit 2 = no device).
-- Brand colours live in `ui/theme/Color.kt`. Dark theme uses lighter tints (`#9EC5FF`, `#7FD6F5`), not the exact brand hex values.
-- `allowBackup="false"`; both backup rule files exclude every domain.
-- `LoginScreen` now wraps a stateless `LoginContent` (for previews); no behaviour change, tests unchanged.
-- Previews are in `app/src/debug/java/...` (same package as the screens) so they never ship: release has **no R8/minify** yet. Worth turning on before release (Phase 3.4?).
-- Gradle from a plain shell needs `JAVA_HOME=C:\Program Files\Android\Android Studio\jbr`.
-- Tests: 29 unit/Robolectric tests, 6 Roborazzi screenshots (re-recorded with brand colours). Lint: 0 errors.
-- Unchanged from before: `ContractFixturesTest` fails on purpose when the contract gains examples (e.g. D25's `429`) until the fixture is added.
+- 2.9: the app reads `Retry-After` (seconds) on any API error. With a 429 it shows the API message plus "Try again in m:ss" and keeps Log in disabled until 0. A 429 without the header shows the message but doesn't lock. The countdown resets if the app is restarted (the server still enforces the limit).
+- 2.10: R8 is on for release (`isMinifyEnabled`, `isShrinkResources`); release APK is 1.66 MB. No app keep rules were needed: Retrofit 3.0.0, kotlinx-serialization 1.12.0 and Hilt 2.60.1 ship their own. This was checked in `seeds.txt` / `configuration.txt`, **not** by running the release APK (no device, and the APK is unsigned).
+- The project template had an `optimization { packageScope = androidx/kotlin/kotlinx }` block that only optimised libraries. It is replaced.
+- Release `API_BASE_URL` is still `https://api.invalid/` (placeholder until 3.6).
+- **Flaky test (pre-existing):** `SetupTest.appStartsWithLabel` failed once out of about 6 full runs. It checks for the login screen right after launch, before DataStore has loaded. Not changed (hard rule). Suggest allowing a change to `compose.waitForText("Aircon Sales")`.
+- Tests: 32 unit/Robolectric tests, 7 Roborazzi screenshots (all re-recorded with neutral colours). Lint: 0 errors, 21 warnings.
+- Gradle from a plain shell still needs `JAVA_HOME=C:\Program Files\Android\Android Studio\jbr`.
