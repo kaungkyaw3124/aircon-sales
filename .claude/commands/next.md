@@ -6,6 +6,7 @@ Run the task loop for this project.
 
 1. Work out which machine this is: **Windows PC** (Windows OS, `D:\claude\p1`) or **VPS** (Linux, `~/aircon-sales`).
 2. `git pull --rebase` on `main`. If it fails, stop and report the error.
+   Then re-read `.claude/commands/next.md` from disk. If the pull changed it, follow the **new** version from step 3 on.
 3. Read `CLAUDE.md`, `docs/PLAN.md`, `docs/DECISIONS.md` and `docs/NEXT.md`.
 4. `docs/NEXT.md` has one section per machine. Only do the tasks in **this machine's section**.
    The other machine may be working on its own section at the same time; never touch its files.
