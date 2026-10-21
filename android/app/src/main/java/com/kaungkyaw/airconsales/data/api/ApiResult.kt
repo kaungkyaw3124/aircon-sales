@@ -7,7 +7,13 @@ import java.io.IOException
 
 sealed interface ApiResult<out T> {
     data class Success<T>(val data: T) : ApiResult<T>
-    data class ApiError(val code: String, val message: String, val httpStatus: Int) : ApiResult<Nothing>
+    /** [retryAfterSeconds] comes from the `Retry-After` header (sent with 429 rate_limited). */
+    data class ApiError(
+        val code: String,
+        val message: String,
+        val httpStatus: Int,
+        val retryAfterSeconds: Int? = null,
+    ) : ApiResult<Nothing>
     data object NetworkError : ApiResult<Nothing>
 }
 
@@ -27,5 +33,5 @@ suspend fun <T : Any> apiCall(call: suspend () -> Response<T>): ApiResult<T> {
         // Not the shared error shape (e.g. a proxy page): keep the status, use a generic message.
         Error.Detail("http_${response.code()}", "Server error (${response.code()}).")
     }
-    return ApiResult.ApiError(error.code, error.message, response.code())
+    return ApiResult.ApiError(error.code, error.message, response.code(), response.headers()["Retry-After"]?.toIntOrNull())
 }

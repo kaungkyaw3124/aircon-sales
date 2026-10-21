@@ -1,5 +1,6 @@
 package com.kaungkyaw.airconsales.ui
 
+import android.os.Looper
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
@@ -25,7 +26,9 @@ import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import java.time.Duration
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Named
@@ -132,5 +135,29 @@ class LoginFlowTest {
         compose.onNodeWithText("Log out").performClick()
         compose.waitForText("Log in")
         assertNull(session.savedToken())
+    }
+
+    @Test
+    fun rateLimitedShowsMessageAndCountdownThenReenables() {
+        server.enqueue(jsonResponse(429, "rate_limited").setHeader("Retry-After", "900"))
+        launch()
+        typeCredentials()
+        compose.onNodeWithText("Log in").performClick()
+
+        compose.waitForText("Too many login attempts. Try again in 15 minutes.")
+        compose.onNodeWithText("Try again in 15:00").assertExists()
+        val button = compose.onNodeWithText("Log in")
+        button.assertIsNotEnabled()
+
+        // Robolectric's paused main looper is the test clock: this runs the countdown's delays instantly.
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(8))
+        compose.onNodeWithText("Try again in 14:52").assertExists()
+        button.assertIsNotEnabled()
+
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(891))
+        compose.onNodeWithText("Try again in 0:01").assertExists()
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(1))
+        compose.onNodeWithText("Try again in 0:01").assertDoesNotExist()
+        button.assertIsEnabled()
     }
 }

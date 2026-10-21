@@ -45,6 +45,16 @@ class ApiClientTest {
     }
 
     @Test
+    fun login429KeepsRetryAfter() = runTest {
+        server.enqueue(json(429, "rate_limited").setHeader("Retry-After", "900"))
+        val result = apiCall { api.login(LoginRequest("owner", "pw")) }
+        assertEquals(
+            ApiResult.ApiError("rate_limited", "Too many login attempts. Try again in 15 minutes.", 429, 900),
+            result,
+        )
+    }
+
+    @Test
     fun dashboardSendsBearerToken() = runTest {
         token = "abc.def.ghi"
         server.enqueue(json(200, "normal_day"))

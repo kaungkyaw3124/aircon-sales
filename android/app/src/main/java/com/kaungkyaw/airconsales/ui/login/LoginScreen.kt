@@ -21,6 +21,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.kaungkyaw.airconsales.R
+import java.util.Locale
 
 @Composable
 fun LoginScreen(vm: LoginViewModel = hiltViewModel()) {
@@ -30,6 +31,7 @@ fun LoginScreen(vm: LoginViewModel = hiltViewModel()) {
         error = vm.error,
         loading = vm.loading,
         canSubmit = vm.canSubmit,
+        retryIn = vm.retryIn,
         onUsernameChange = { vm.username = it },
         onPasswordChange = { vm.password = it },
         onLogin = vm::login,
@@ -43,6 +45,7 @@ fun LoginContent(
     error: String?,
     loading: Boolean,
     canSubmit: Boolean,
+    retryIn: Int = 0,
     onUsernameChange: (String) -> Unit = {},
     onPasswordChange: (String) -> Unit = {},
     onLogin: () -> Unit = {},
@@ -70,6 +73,7 @@ fun LoginContent(
             modifier = Modifier.fillMaxWidth(),
         )
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        if (retryIn > 0) Text(String.format(Locale.US, "Try again in %d:%02d", retryIn / 60, retryIn % 60))
         Button(onClick = onLogin, enabled = canSubmit, modifier = Modifier.fillMaxWidth()) {
             Text("Log in")
         }
