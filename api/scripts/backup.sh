@@ -1,10 +1,16 @@
 #!/bin/bash
-# Daily backup of the aircon database: custom-format pg_dump into ~/aircon-backups, keeps the newest 14.
+# Daily backup of the aircon database: custom-format pg_dump into ~/aircon-backups.
+# Keeps the newest 14, plus the first dump of each of the last 12 months (D31).
+# Writes LAST_OK (timestamp) on success, LAST_FAILED (timestamp + reason) on failure.
 set -euo pipefail
 
 DIR="${BACKUP_DIR:-$HOME/aircon-backups}"
 KEEP=14
-fail() { echo "$(date -Is) backup FAILED: $*" >&2; exit 1; }
+fail() {
+  echo "$(date -Is) backup FAILED: $*" >&2
+  echo "$(date -Is) $*" > "$DIR/LAST_FAILED" 2>/dev/null || true
+  exit 1
+}
 trap 'fail "command failed on line $LINENO"' ERR
 
 mkdir -p "$DIR" || fail "cannot create $DIR"
@@ -18,6 +24,10 @@ docker exec aircon-db pg_dump -U aircon -d aircon -Fc > "$tmp" || { rm -f "$tmp"
 mv "$tmp" "$file"
 chmod 600 "$file"
 
-# names sort by time (YYYY-MM-DD_HHMM), so keep the last $KEEP
-ls -1 "$DIR"/aircon-*.dump | sort | head -n -"$KEEP" | xargs -r rm --
+# names sort by time (YYYY-MM-DD_HHMM): keep the last $KEEP, and the first of each of the last 12 months
+all=$(ls -1 "$DIR"/aircon-*.dump | sort)
+keep=$(echo "$all" | tail -n "$KEEP"; echo "$all" | awk '{m = substr($0, length($0) - 19, 7)} !seen[m]++' | tail -n 12)
+echo "$all" | { grep -vxF -f <(echo "$keep") || true; } | xargs -r rm --
+date -Is > "$DIR/LAST_OK"
+rm -f "$DIR/LAST_FAILED"
 echo "$(date -Is) backup OK: $file ($(stat -c %s "$file") bytes, $(ls -1 "$DIR"/aircon-*.dump | wc -l) kept)"

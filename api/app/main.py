@@ -5,11 +5,15 @@ import time
 from fastapi import FastAPI, Request
 
 from app import auth, dashboard, errors
+from app.config import settings
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 access_log = logging.getLogger("app.access")
 
-app = FastAPI(title="Aircon Sales API")
+# API docs answer without a token, so they are off in production (CLAUDE.md: every endpoint needs a token)
+docs_on = settings.app_env != "production"
+app = FastAPI(title="Aircon Sales API", docs_url="/docs" if docs_on else None, redoc_url="/redoc" if docs_on else None,
+              openapi_url="/openapi.json" if docs_on else None)
 errors.install(app)
 app.include_router(auth.router)
 app.include_router(dashboard.router)

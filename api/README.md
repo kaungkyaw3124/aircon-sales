@@ -26,6 +26,23 @@ Never use these on a real server. `--reset` refuses to run when `APP_ENV=product
 - Logs (`docker compose logs api`): one line per request, `METHOD /path STATUS 12.3ms`. Path only (no query string,
   headers or body), so tokens and passwords never reach the log. `/health` is not logged (the healthcheck calls it every 10 s).
 
+## Users
+
+`scripts/create_user.py` creates or updates a login. It changes one user and deletes nothing, so it works in production.
+The password is typed twice at a hidden prompt (at least 10 characters), never on the command line.
+```
+docker exec -it aircon-api python scripts/create_user.py --username owner --full-name "U Kyaw Kyaw" --role owner
+docker exec -it aircon-api python scripts/create_user.py --username sales1 --role sales     # update: new password, role
+docker exec -it aircon-api python scripts/create_user.py --username sales1 --deactivate    # can't log in any more
+```
+A new user needs `--full-name` and `--role`. Setting a new password also re-activates a deactivated user.
+(From the venv instead of the container: `.venv/bin/python scripts/create_user.py …`, uses `DATABASE_URL` from `.env`.)
+
+## Production mode
+
+With `APP_ENV=production`: `/docs`, `/redoc` and `/openapi.json` answer 404 (they need no token, so they're off);
+`seed.py --reset` refuses to run. Docker keeps at most 5 × 10 MB of logs per container.
+
 ## Login rate limit
 
 5 failed logins per username, or 20 per client IP, in 15 minutes → `429 rate_limited` with `Retry-After` (D30).
@@ -39,7 +56,10 @@ set `TRUSTED_PROXIES=172.19.0.1` then, or every client shares one IP counter.
 
 `scripts/backup.sh` dumps the `aircon` database (`pg_dump -Fc` inside `aircon-db`) to
 `~/aircon-backups/aircon-YYYY-MM-DD_HHMM.dump` (Yangon time; folder mode 700, files 600, outside the repo).
-It keeps the newest 14 dumps and exits non-zero with a `backup FAILED: <reason>` line on any error.
+It keeps the newest 14 dumps plus the first dump of each of the last 12 months (D31), and exits non-zero with a
+`backup FAILED: <reason>` line on any error.
+After a good backup it writes the time to `~/aircon-backups/LAST_OK` and removes `LAST_FAILED`; after a failure it writes
+`LAST_FAILED` (time + reason) and leaves `LAST_OK` alone. Quick check: `cat ~/aircon-backups/LAST_OK; ls ~/aircon-backups/LAST_FAILED`.
 
 It runs daily at 02:30 Yangon from the `administrator` user's crontab (the server clock is UTC; Yangon is UTC+6:30, no DST):
 ```
